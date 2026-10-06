@@ -1,0 +1,14 @@
+{
+  "name": "rectifier-lab",
+  "version": "1.0.0",
+  "description": "Interactive simulator for 1-phase and 3-phase HW, FW, DBR and TCR rectifiers: schematics with live current path, waveforms, harmonics and theory. Static site, no build step, no dependencies.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node tools/serve.js",
+    "test": "node tests/verify_sim.js && node tests/verify_schematic.js && node tests/verify_files.js",
+    "test:ui": "python3 tests/ui_test.py",
+    "test:all": "npm test && npm run test:ui"
+  },
+  "engines": { "node": ">=18" }
+}
