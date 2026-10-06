@@ -1,0 +1,2497 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rectifier Lab — half-wave, full-wave, diode-bridge and thyristor rectifiers</title>
+  <meta name="description" content="Interactive simulator for single-phase and three-phase half-wave, full-wave, diode bridge (DBR) and thyristor-controlled (TCR) rectifiers: schematics with live current paths, synchronised waveforms, harmonic spectra and formulas.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f4fbf'/%3E%3Cpath d='M4 22 Q10 6 16 22 T28 22' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' transform='translate(0 -3)'/%3E%3C/svg%3E">
+  <style>
+/* Rectifier Lab — styles.
+ * Look: a lab notebook. Cool paper ground with a faint drafting grid, ink-blue lines, serif headings,
+ * flat bordered panels, one orange for "where the current is".
+ */
+:root {
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font-num: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+
+  --bg: #e6ebf1;
+  --bg-grid: rgba(31, 79, 191, .07);
+  --panel: #ffffff;
+  --panel-2: #f3f6fa;
+  --text: #0e1a29;
+  --text-2: #47586b;
+  --rule: #c5cfdb;
+  --rule-2: #dbe2ea;
+  --accent: #1f4fbf;
+  --accent-ink: #ffffff;
+  --accent-soft: #e4ecff;
+  --ok: #0a7a3b;
+  --bad: #b3261e;
+  --warn-bg: #fff4d6;
+
+  --sch-ink: #14233a;
+  --flow: #e4572e;
+  --flow-soft: rgba(228, 87, 46, .22);
+  --on: #e4572e;
+  --on-soft: #ffd9cc;
+
+  --plot-bg: #ffffff;
+  --plot-grid: #e1e7ee;
+  --plot-dim: #eef2f6;
+  --plot-axis: #8a9aab;
+  --cursor: #0e1a29;
+  --c-a: #2a78d6; --c-b: #eb6834; --c-c: #1baf7a; --c-d: #e87ba4; --c-e: #4a3aa7; --c-f: #eda100;
+  --c-vo: #4a3aa7; --c-io: #008300; --c-id: #e34948; --c-vd: #566573; --c-fwd: #eda100; --c-bar: #2a78d6;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0d141c;
+  --bg-grid: rgba(120, 160, 255, .06);
+  --panel: #151f2a;
+  --panel-2: #1b2734;
+  --text: #e7eef6;
+  --text-2: #9db0c3;
+  --rule: #2b3a4a;
+  --rule-2: #223040;
+  --accent: #78a2ff;
+  --accent-ink: #0b1220;
+  --accent-soft: #1d2e52;
+  --ok: #4cc27d;
+  --bad: #ff8078;
+  --warn-bg: #3a3014;
+
+  --sch-ink: #cfdcec;
+  --flow: #ff8a5c;
+  --flow-soft: rgba(255, 138, 92, .25);
+  --on: #ff8a5c;
+  --on-soft: #5b2d1d;
+
+  --plot-bg: #151f2a;
+  --plot-grid: #263546;
+  --plot-dim: #1d2937;
+  --plot-axis: #5f7287;
+  --cursor: #e7eef6;
+  --c-a: #3987e5; --c-b: #d95926; --c-c: #199e70; --c-d: #d55181; --c-e: #9085e9; --c-f: #c98500;
+  --c-vo: #9085e9; --c-io: #2fa84f; --c-id: #e66767; --c-vd: #9fb0c0; --c-fwd: #c98500; --c-bar: #3987e5;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; font: 15px/1.5 var(--font-ui); color: var(--text); background-color: var(--bg);
+  background-image: linear-gradient(var(--bg-grid) 1px, transparent 1px), linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+h1, h2, h3 { font-family: var(--font-serif); font-weight: 600; margin: 0; letter-spacing: .005em; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+.skip { position: absolute; left: -999px; top: 0; background: var(--accent); color: var(--accent-ink); padding: 8px 12px; z-index: 50; }
+.skip:focus { left: 8px; top: 8px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ------------------------------------------------------------- header */
+.top {
+  display: grid; grid-template-columns: minmax(220px, 1fr) auto minmax(200px, 1fr); gap: 20px 28px; align-items: center;
+  padding: 18px 28px; background: var(--panel); border-bottom: 1px solid var(--rule);
+}
+.brand h1 { font-size: 26px; line-height: 1.1; }
+.brand p { color: var(--text-2); font-size: 13.5px; margin-top: 6px; max-width: 34ch; }
+.matrix {
+  display: grid; grid-template-columns: auto repeat(4, minmax(92px, 1fr)); gap: 6px; align-items: stretch;
+}
+.mx-col, .mx-row { display: flex; flex-direction: column; justify-content: center; font-size: 12px; color: var(--text-2); line-height: 1.2; }
+.mx-col { align-items: center; text-align: center; padding-bottom: 2px; }
+.mx-col b { color: var(--text); font-size: 14px; }
+.mx-col i { font-style: normal; }
+.mx-row { padding-right: 8px; white-space: nowrap; }
+.mx-row b { color: var(--text); font-size: 13px; font-weight: 600; }
+.cm {
+  border: 1px solid var(--rule); background: var(--panel-2); border-radius: 6px; padding: 9px 6px; cursor: pointer;
+  font-size: 13px; color: var(--text-2); transition: background .12s, border-color .12s, color .12s;
+}
+.cm:hover { border-color: var(--accent); color: var(--text); }
+.cm[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.top-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; align-items: flex-start; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--rule); background: var(--panel);
+  border-radius: 6px; padding: 7px 12px; cursor: pointer; font-size: 13.5px; line-height: 1.2; list-style: none; user-select: none;
+}
+.btn:hover { border-color: var(--accent); }
+.btn:active { transform: translateY(1px); }
+.btn.wide { width: 100%; }
+.btn.flat { border: 0; background: transparent; justify-content: flex-start; width: 100%; padding: 9px 12px; border-radius: 0; }
+.btn.flat:hover { background: var(--accent-soft); }
+.btn.icon { min-width: 40px; padding: 7px 8px; font-family: var(--font-num); }
+.btn.play { min-width: 76px; background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.menu { position: relative; }
+.menu summary::-webkit-details-marker { display: none; }
+.menu-body { position: absolute; right: 0; top: calc(100% + 4px); background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; min-width: 200px; z-index: 20; overflow: hidden; }
+
+/* ------------------------------------------------------------- layout */
+main { padding: 20px 28px 8px; max-width: 1760px; margin: 0 auto; display: grid; gap: 20px; }
+.stage { display: grid; grid-template-columns: 318px minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 18px; min-width: 0; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.card-head h2 { font-size: 18px; }
+.hint { font-size: 12.5px; color: var(--text-2); margin-top: 6px; }
+.hint:empty { display: none; }
+.side { display: grid; gap: 20px; }
+.col-center { display: grid; gap: 20px; min-width: 0; }
+.live .kv { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 18px; }
+.live .cell { min-width: 0; }
+.live .cell dt { font-size: 12.5px; color: var(--text-2); }
+.live .cell dd { text-align: left; margin-top: 2px; font-size: 14px; }
+.live .cell.span2 { grid-column: span 2; }
+
+/* ------------------------------------------------------------- controls */
+.controls fieldset { border: 0; border-top: 1px solid var(--rule-2); margin: 0; padding: 12px 0 14px; min-width: 0; }
+.controls fieldset:first-of-type { border-top: 0; padding-top: 0; }
+.controls legend { font-family: var(--font-serif); font-weight: 600; font-size: 15px; padding: 0 0 6px; float: left; width: 100%; }
+.controls legend + * { clear: both; }
+.row { display: grid; grid-template-columns: 74px 66px 26px minmax(0, 1fr); gap: 6px; align-items: center; margin-top: 8px; }
+.row label { font-size: 13.5px; }
+.u { font-size: 12.5px; color: var(--text-2); }
+.num {
+  width: 100%; padding: 5px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel-2); color: var(--text);
+  font: 13.5px var(--font-num); text-align: right;
+}
+.num:disabled, .rg:disabled { opacity: .45; cursor: not-allowed; }
+.rg { width: 100%; accent-color: var(--accent); margin: 0; }
+.chk { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; margin-top: 10px; cursor: pointer; }
+.chk input { margin-top: 3px; accent-color: var(--accent); }
+.pair { display: flex; gap: 6px; }
+.chip { border: 1px solid var(--rule); background: var(--panel-2); border-radius: 4px; padding: 4px 10px; cursor: pointer; font: 13px var(--font-num); }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.segb { border: 0; background: var(--panel-2); padding: 7px 8px; cursor: pointer; font-size: 13.5px; }
+.segb + .segb { border-left: 1px solid var(--rule); }
+.segb[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.segb:disabled { cursor: default; }
+.presets { display: grid; gap: 6px; }
+.presets button {
+  text-align: left; border: 1px solid var(--rule); background: var(--panel-2); border-radius: 4px; padding: 6px 9px; cursor: pointer; font-size: 13px; line-height: 1.3;
+}
+.presets button:hover { border-color: var(--accent); }
+.presets button[disabled] { opacity: .4; cursor: not-allowed; }
+.presets button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+
+/* ------------------------------------------------------------- schematic */
+.schem { padding-bottom: 14px; }
+.mode { font-size: 12.5px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--rule); background: var(--panel-2); color: var(--text-2); white-space: nowrap; }
+.mode.m1 { background: var(--on-soft); border-color: var(--on); color: var(--text); }
+.mode.m2 { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
+.schem-wrap {
+  border: 1px solid var(--rule-2); border-radius: 4px; background: var(--panel); position: relative;
+  background-image: radial-gradient(var(--rule-2) 1px, transparent 1.2px); background-size: 20px 20px;
+}
+.schem-wrap svg { display: block; width: 100%; height: auto; }
+.schem-key { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-2); margin: 8px 2px 12px; align-items: center; }
+.schem-key i { display: inline-block; width: 22px; height: 0; border-top: 3px dashed var(--flow); vertical-align: middle; margin-right: 6px; }
+.schem-key i.k-on { border-top: 2px solid var(--on); width: 14px; height: 10px; background: var(--on-soft); border-radius: 2px; border: 2px solid var(--on); }
+.transport { display: grid; grid-template-columns: auto auto auto auto minmax(160px, 1fr) minmax(150px, 220px); gap: 8px 10px; align-items: center; }
+.scrub, .speed { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.scrub output { font: 13.5px var(--font-num); min-width: 64px; text-align: right; }
+.speed label { font-size: 13px; color: var(--text-2); }
+.speed output { font: 13px var(--font-num); min-width: 32px; }
+
+.sch .w, .sch .st { fill: none; stroke: var(--sch-ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sch .st.fl { fill: var(--panel); }
+.sch .c.on .st { stroke: var(--on); stroke-width: 2.4; }
+.sch .c.on .st.fl { fill: var(--on-soft); }
+.sch .dot { fill: var(--sch-ink); }
+.sch .arrow { fill: var(--sch-ink); }
+.sch text { font-family: var(--font-ui); font-size: 13px; fill: var(--text); }
+.sch .it { font-family: var(--font-serif); font-style: italic; font-size: 15px; }
+.sch .sign { font-size: 15px; font-weight: 600; }
+.sch .dev-lbl { font-weight: 600; }
+.sch .src-lbl { font-family: var(--font-serif); font-style: italic; font-size: 14px; }
+.sch .val-lbl { font-family: var(--font-num); font-size: 12px; fill: var(--text-2); }
+.sch .gate { font-size: 10px; fill: var(--text-2); }
+.sch .flow .halo { stroke: var(--flow-soft); stroke-width: 8; stroke-linecap: round; }
+.sch .flow .dash { stroke: var(--flow); stroke-width: 3.6; stroke-linecap: round; stroke-dasharray: 6 10; animation: flow .65s linear infinite; }
+@keyframes flow { from { stroke-dashoffset: 16; } to { stroke-dashoffset: 0; } }
+.paused .sch .flow .dash { animation-play-state: paused; }
+.schem-key .gate-key { margin-left: auto; }
+
+/* ------------------------------------------------------------- live + results */
+.kv { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; font-size: 14px; }
+.kv dt { color: var(--text-2); }
+.kv dd { margin: 0; text-align: right; font-family: var(--font-num); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.kv dd.wide { grid-column: 1 / -1; text-align: left; }
+.kv dd .dv { display: inline-block; padding: 0 6px; margin-left: 4px; border-radius: 3px; background: var(--on-soft); border: 1px solid var(--on); font-size: 12.5px; }
+.results h3 { font-size: 14px; margin: 14px 0 6px; padding-top: 10px; border-top: 1px solid var(--rule-2); }
+.results h3:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.results .kv { font-size: 13.5px; }
+.badge { font-family: var(--font-ui); font-size: 11.5px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--rule); margin-left: 6px; }
+.badge.ok { color: var(--ok); border-color: var(--ok); }
+.badge.bad { color: var(--bad); border-color: var(--bad); }
+
+/* ------------------------------------------------------------- waveforms */
+.wave-head { align-items: center; flex-wrap: wrap; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.wave-hint { margin: -4px 0 12px; }
+.wave-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.pnl { border: 1px solid var(--rule-2); border-radius: 4px; overflow: hidden; background: var(--plot-bg); min-width: 0; }
+.pnl[hidden] { display: none; }
+.pnl-head { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; padding: 8px 12px 4px; }
+.pnl-head h3 { font-size: 15px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--text-2); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.pnl-read { margin-left: auto; font: 12.5px var(--font-num); color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
+.pnl select { font: 13px var(--font-ui); padding: 2px 6px; border: 1px solid var(--rule); background: var(--panel-2); color: var(--text); border-radius: 4px; }
+canvas.cv { display: block; width: 100%; height: 168px; cursor: crosshair; touch-action: none; }
+canvas.cv.gantt { height: 190px; }
+canvas.cv.spec { height: 200px; cursor: default; }
+
+/* ------------------------------------------------------------- tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule); margin: -4px 0 16px; }
+.tab { border: 0; background: transparent; padding: 9px 16px; cursor: pointer; font-family: var(--font-serif); font-size: 16px; color: var(--text-2); border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.tab:hover { color: var(--text); }
+.tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.pane[hidden] { display: none; }
+.spec-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.spec-card { border: 1px solid var(--rule-2); border-radius: 4px; overflow: hidden; background: var(--plot-bg); }
+.spec-head { display: flex; align-items: baseline; gap: 12px; padding: 8px 12px 2px; flex-wrap: wrap; }
+.spec-head h3 { font-size: 15px; }
+.readout { margin-left: auto; font: 12.5px var(--font-num); color: var(--text-2); }
+
+.theory-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; }
+.theory p { max-width: 70ch; }
+.theory h3 { font-size: 16px; margin: 0 0 8px; }
+.theory table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.theory td, .theory th { padding: 7px 10px; border-bottom: 1px solid var(--rule-2); text-align: left; vertical-align: top; }
+.theory td:last-child { font-family: var(--font-num); font-size: 13.5px; }
+.theory ul { margin: 6px 0 0; padding-left: 20px; color: var(--text-2); font-size: 14px; }
+.theory li { margin: 4px 0; }
+.compare { margin-top: 18px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel-2); }
+.compare .kv { margin-top: 8px; }
+
+.checks-list { display: grid; gap: 8px; }
+.check { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 10px 12px; border: 1px solid var(--rule-2); border-radius: 4px; background: var(--panel-2); }
+.check .st { font-weight: 700; font-size: 16px; line-height: 1.3; text-align: center; }
+.check.ok .st { color: var(--ok); }
+.check.bad .st { color: var(--bad); }
+.check.na .st { color: var(--text-2); }
+.check b { display: block; font-weight: 600; }
+.check span { color: var(--text-2); font-size: 13.5px; }
+.warn { padding: 10px 12px; border: 1px solid #d9a400; background: var(--warn-bg); border-radius: 4px; font-size: 13.5px; margin-bottom: 10px; }
+
+.foot { padding: 6px 28px 40px; max-width: 1760px; margin: 0 auto; color: var(--text-2); font-size: 12.5px; }
+.foot p { max-width: 110ch; }
+.toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 20px); background: var(--text); color: var(--bg); padding: 9px 16px;
+  border-radius: 6px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 60;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ------------------------------------------------------------- responsive */
+@media (max-width: 1320px) {
+  .stage { grid-template-columns: 300px minmax(0, 1fr); }
+  .side { grid-column: 1 / -1; }
+}
+@media (max-width: 1100px) {
+  .top { grid-template-columns: 1fr; }
+  .top-actions { justify-content: flex-start; }
+  .wave-grid, .spec-grid, .theory-grid { grid-template-columns: 1fr; }
+  .transport { grid-template-columns: auto auto auto auto minmax(0, 1fr); }
+  .speed { grid-column: 1 / -1; }
+}
+@media (max-width: 800px) {
+  main, .top, .foot { padding-left: 14px; padding-right: 14px; }
+  .stage { grid-template-columns: 1fr; }
+  .live .kv { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .matrix { grid-template-columns: auto repeat(4, minmax(60px, 1fr)); gap: 4px; }
+  .cm { font-size: 12px; padding: 8px 2px; }
+  .mx-col i { display: none; }
+  .transport { grid-template-columns: repeat(4, auto) ; }
+  .scrub { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sch .flow .dash { animation: none; }
+  .btn:active { transform: none; }
+  .toast { transition: none; }
+}
+
+.credit { margin-top: 2px; font-size: 12.5px; color: var(--text-2); }
+.credit-foot { margin-bottom: 6px; color: var(--text); }
+
+</style>
+</head>
+<body>
+<a class="skip" href="#waves">Skip to waveforms</a>
+
+<header class="top">
+  <div class="brand">
+    <h1>Rectifier Lab</h1>
+    <p>Single-phase and three-phase rectifiers: schematic, live current path and waveforms for every circuit.</p>
+    <p class="credit">Developed by Tahiti Roy &middot; Roll no. 24EE10100</p>
+  </div>
+
+  <div class="matrix" role="group" aria-label="Choose a circuit">
+    <span class="mx-corner"></span>
+    <span class="mx-col"><b>HW</b><i>half-wave</i></span>
+    <span class="mx-col"><b>FW</b><i>full-wave</i></span>
+    <span class="mx-col"><b>DBR</b><i>diode bridge</i></span>
+    <span class="mx-col"><b>TCR</b><i>thyristor bridge</i></span>
+    <span class="mx-row"><b>1-phase</b></span>
+    <button class="cm" id="cm-1-HW"  data-phase="1" data-topo="HW"  aria-pressed="false">1-pulse</button>
+    <button class="cm" id="cm-1-FW"  data-phase="1" data-topo="FW"  aria-pressed="false">2-pulse</button>
+    <button class="cm" id="cm-1-DBR" data-phase="1" data-topo="DBR" aria-pressed="false">2-pulse</button>
+    <button class="cm" id="cm-1-TCR" data-phase="1" data-topo="TCR" aria-pressed="false">2-pulse</button>
+    <span class="mx-row"><b>3-phase</b></span>
+    <button class="cm" id="cm-3-HW"  data-phase="3" data-topo="HW"  aria-pressed="false">3-pulse</button>
+    <button class="cm" id="cm-3-FW"  data-phase="3" data-topo="FW"  aria-pressed="false">6-pulse</button>
+    <button class="cm" id="cm-3-DBR" data-phase="3" data-topo="DBR" aria-pressed="false">6-pulse</button>
+    <button class="cm" id="cm-3-TCR" data-phase="3" data-topo="TCR" aria-pressed="false">6-pulse</button>
+  </div>
+
+  <div class="top-actions">
+    <button class="btn" id="btn-theme" type="button" aria-label="Switch colour theme">Dark theme</button>
+    <button class="btn" id="btn-link" type="button">Copy link</button>
+    <details class="menu" id="export-menu">
+      <summary class="btn">Export</summary>
+      <div class="menu-body">
+        <button class="btn flat" id="btn-csv" type="button">Waveforms as CSV</button>
+        <button class="btn flat" id="btn-png" type="button">Waveforms as PNG</button>
+        <button class="btn flat" id="btn-svg" type="button">Schematic as SVG</button>
+      </div>
+    </details>
+  </div>
+</header>
+
+<main>
+  <section class="stage" aria-label="Circuit and controls">
+    <aside class="card controls" aria-label="Parameters">
+      <fieldset id="fs-device">
+        <legend>Device type</legend>
+        <div class="seg" role="group" aria-label="Device type">
+          <button class="segb" id="dev-diode" type="button" aria-pressed="false">Diode</button>
+          <button class="segb" id="dev-scr" type="button" aria-pressed="false">Thyristor</button>
+        </div>
+        <p class="hint" id="dev-hint"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Supply</legend>
+        <div class="row">
+          <label for="in-V">Vs (rms)</label>
+          <input class="num" id="in-V" type="number" min="10" max="1000" step="1" inputmode="decimal"><span class="u">V</span>
+          <input class="rg" id="rg-V" type="range" min="50" max="480" step="1" aria-label="Supply voltage slider">
+        </div>
+        <p class="hint" id="v-hint"></p>
+        <div class="row">
+          <label for="in-f">Frequency</label>
+          <input class="num" id="in-f" type="number" min="10" max="400" step="1" inputmode="decimal"><span class="u">Hz</span>
+          <span class="pair"><button class="chip" id="f50" type="button">50</button><button class="chip" id="f60" type="button">60</button></span>
+        </div>
+      </fieldset>
+
+      <fieldset id="fs-alpha">
+        <legend>Firing angle</legend>
+        <div class="row">
+          <label for="in-alpha">α</label>
+          <input class="num" id="in-alpha" type="number" min="0" max="180" step="1" inputmode="decimal"><span class="u">deg</span>
+          <input class="rg" id="rg-alpha" type="range" min="0" max="180" step="1" aria-label="Firing angle slider">
+        </div>
+        <p class="hint" id="alpha-hint"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Load: R + L + E in series</legend>
+        <div class="row">
+          <label for="in-R">R</label>
+          <input class="num" id="in-R" type="number" min="0.1" max="1000" step="0.5" inputmode="decimal"><span class="u">Ω</span>
+          <input class="rg" id="rg-R" type="range" min="1" max="200" step="0.5" aria-label="Resistance slider">
+        </div>
+        <div class="row">
+          <label for="in-L">L</label>
+          <input class="num" id="in-L" type="number" min="0" max="5000" step="1" inputmode="decimal"><span class="u">mH</span>
+          <input class="rg" id="rg-L" type="range" min="0" max="500" step="1" aria-label="Inductance slider">
+        </div>
+        <label class="chk"><input type="checkbox" id="chk-Linf"> Ideal inductor (L → ∞, ripple-free current)</label>
+        <div class="row">
+          <label for="in-E">E</label>
+          <input class="num" id="in-E" type="number" min="0" max="1000" step="1" inputmode="decimal"><span class="u">V</span>
+          <input class="rg" id="rg-E" type="range" min="0" max="400" step="1" aria-label="Back-emf slider">
+        </div>
+        <label class="chk"><input type="checkbox" id="chk-fwd"> Freewheeling diode across the load</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Presets</legend>
+        <div class="presets" id="presets"></div>
+      </fieldset>
+
+      <button class="btn wide" id="btn-defaults" type="button">Reset all parameters</button>
+    </aside>
+
+    <div class="col-center">
+    <section class="card schem" aria-label="Schematic">
+      <div class="card-head">
+        <h2 id="schem-title">Circuit</h2>
+        <span class="mode" id="mode-pill">—</span>
+      </div>
+      <div class="warn" id="warn" role="alert" hidden></div>
+      <div class="schem-wrap" id="schem" aria-live="off"></div>
+      <div class="schem-key" aria-hidden="true">
+        <span><i class="k-flow"></i>current path</span>
+        <span><i class="k-on"></i>conducting device</span>
+        <span class="gate-key">G gate terminal</span>
+      </div>
+      <div class="transport" role="group" aria-label="Animation controls">
+        <button class="btn icon" id="btn-prev" type="button" aria-label="Step back 5 degrees" title="Step back 5°">◀</button>
+        <button class="btn play" id="btn-play" type="button" aria-label="Play animation">Play</button>
+        <button class="btn icon" id="btn-next" type="button" aria-label="Step forward 5 degrees" title="Step forward 5°">▶</button>
+        <button class="btn icon" id="btn-reset-theta" type="button" aria-label="Back to 0 degrees" title="Back to 0°">0°</button>
+        <div class="scrub">
+          <input class="rg" id="rg-theta" type="range" min="0" max="359.95" step="0.05" value="0" aria-label="Position in the cycle, degrees">
+          <output id="out-theta">0.0°</output>
+        </div>
+        <div class="speed">
+          <label for="rg-speed">Speed</label>
+          <input class="rg" id="rg-speed" type="range" min="0.25" max="4" step="0.25" value="1">
+          <output id="out-speed">1×</output>
+        </div>
+      </div>
+    </section>
+    <section class="card live" aria-label="Values at the cursor">
+        <div class="card-head"><h2>At the cursor</h2></div>
+        <dl class="kv" id="live"></dl>
+      </section>
+  </div>
+
+    <aside class="side">
+      <section class="card results" aria-label="Results over one cycle">
+        <div class="card-head"><h2>One-cycle results</h2></div>
+        <div id="results"></div>
+      </section>
+    </aside>
+  </section>
+
+  <section class="waves card" id="waves" aria-label="Waveforms">
+    <div class="card-head wave-head">
+      <h2>Waveforms over one supply cycle</h2>
+      <div class="chips" id="chips" role="group" aria-label="Show or hide waveform panels"></div>
+    </div>
+    <p class="hint wave-hint">Click or drag on any waveform to move the cursor; hover to read values without moving it.</p>
+    <div class="wave-grid" id="wave-grid"></div>
+  </section>
+
+  <section class="card tabs-card" aria-label="Analysis">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-spectrum" aria-controls="pane-spectrum" aria-selected="true">Harmonics</button>
+      <button class="tab" role="tab" id="tab-theory" aria-controls="pane-theory" aria-selected="false">Theory</button>
+      <button class="tab" role="tab" id="tab-checks" aria-controls="pane-checks" aria-selected="false">Accuracy checks</button>
+    </div>
+    <div class="pane" id="pane-spectrum" role="tabpanel" aria-labelledby="tab-spectrum">
+      <div class="spec-grid">
+        <div class="spec-card">
+          <div class="spec-head"><h3>Output voltage vo</h3><span class="readout" id="spec-vo-read">hover a bar</span></div>
+          <canvas id="cv-spec-vo" class="cv spec" aria-label="Harmonic spectrum of output voltage"></canvas>
+        </div>
+        <div class="spec-card">
+          <div class="spec-head"><h3 id="spec-is-title">Supply current</h3><span class="readout" id="spec-is-read">hover a bar</span></div>
+          <canvas id="cv-spec-is" class="cv spec" aria-label="Harmonic spectrum of supply current"></canvas>
+        </div>
+      </div>
+      <p class="hint">Bars show peak amplitude of each harmonic of the supply frequency (DC is the average). Harmonic order is on the horizontal axis.</p>
+    </div>
+    <div class="pane" id="pane-theory" role="tabpanel" aria-labelledby="tab-theory" hidden>
+      <div id="theory"></div>
+    </div>
+    <div class="pane" id="pane-checks" role="tabpanel" aria-labelledby="tab-checks" hidden>
+      <div id="checks"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p class="credit-foot"><b>Developed by Tahiti Roy</b> &mdash; Roll no. 24EE10100</p>
+  <p>Model: ideal sources and switches, no source inductance (no overlap), no device drops. The load is R, L and E in series.
+  Thyristors fire at α measured from the natural commutation point of each device. Everything runs in your browser; there is no server.</p>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* circuits.js — topology definitions for the eight rectifier circuits.
+ *
+ * Every circuit is described by:
+ *   - u(θ)       : the source-node voltages (relative to the neutral / return node)
+ *   - devices    : each device is either in the "top" group (common-cathode, anode on a
+ *                  source node, cathode on the output node P) or in the "bot" group
+ *                  (common-anode, cathode on a source node, anode on the output node N)
+ *   - nat        : natural-commutation angle of the device (α = 0 reference), degrees
+ *   - channels   : how the source / line currents are formed from node currents
+ *   - netlist()  : an independent, hand-written connectivity list used by the tests to
+ *                  prove that the drawn schematic and the simulated model are the same circuit.
+ */
+(function (root) {
+  'use strict';
+
+  const TOPOLOGIES = {
+    HW:  { short: 'HW',  name: 'Half-wave' },
+    FW:  { short: 'FW',  name: 'Full-wave' },
+    DBR: { short: 'DBR', name: 'Diode bridge' },
+    TCR: { short: 'TCR', name: 'Thyristor bridge' }
+  };
+
+  function circuitDef(phases, topo, device) {
+    const dev = topo === 'DBR' ? 'diode' : topo === 'TCR' ? 'scr' : (device === 'scr' ? 'scr' : 'diode');
+    const pre = dev === 'scr' ? 'T' : 'D';
+    const controlled = dev === 'scr';
+    const key = phases + 'ph-' + topo;
+    const dv = (n, group, node, nat) => ({ id: pre + n, group, node, nat, kind: dev });
+    let d;
+
+    if (phases === 1 && topo === 'HW') {
+      d = {
+        pulses: 1, bridge: false, nodes: ['A'],
+        u: (th, Vm) => [Vm * Math.sin(th)],
+        devices: [dv(1, 'top', 0, 0)],
+        plotSources: [{ name: 'vs', k: 0 }],
+        channels: [{ name: 'is', terms: [[0, 1]] }],
+        gateWidth: 30,
+        title: 'Single-phase half-wave rectifier',
+        sourceNote: 'Vs = rms of the supply voltage',
+        vmFactor: 1
+      };
+    } else if (phases === 1 && topo === 'FW') {
+      d = {
+        pulses: 2, bridge: false, nodes: ['A1', 'A2'],
+        u: (th, Vm) => { const v = Vm * Math.sin(th); return [v, -v]; },
+        devices: [dv(1, 'top', 0, 0), dv(2, 'top', 1, 180)],
+        plotSources: [{ name: 'vs1', k: 0 }, { name: 'vs2', k: 1 }],
+        channels: [{ name: 'is', terms: [[0, 1], [1, -1]], label: 'is (primary, 1:1 per half)' }],
+        gateWidth: 30,
+        title: 'Single-phase full-wave rectifier (centre-tapped transformer)',
+        sourceNote: 'Vs = rms of each secondary half',
+        vmFactor: 1
+      };
+    } else if (phases === 1) {
+      d = {
+        pulses: 2, bridge: true, nodes: ['A', 'B'],
+        u: (th, Vm) => [Vm * Math.sin(th), 0],
+        devices: [dv(1, 'top', 0, 0), dv(2, 'bot', 1, 0), dv(3, 'top', 1, 180), dv(4, 'bot', 0, 180)],
+        plotSources: [{ name: 'vs', k: 0 }],
+        channels: [{ name: 'is', terms: [[0, 1]] }],
+        gateWidth: 30,
+        title: topo === 'DBR' ? 'Single-phase diode bridge rectifier' : 'Single-phase thyristor-controlled bridge rectifier',
+        sourceNote: 'Vs = rms of the supply voltage',
+        vmFactor: 1
+      };
+    } else if (topo === 'HW') {
+      d = {
+        pulses: 3, bridge: false, nodes: ['a', 'b', 'c'],
+        u: (th, Vm) => [Vm * Math.sin(th), Vm * Math.sin(th - 2 * Math.PI / 3), Vm * Math.sin(th - 4 * Math.PI / 3)],
+        devices: [dv(1, 'top', 0, 30), dv(2, 'top', 1, 150), dv(3, 'top', 2, 270)],
+        plotSources: [{ name: 'va', k: 0 }, { name: 'vb', k: 1 }, { name: 'vc', k: 2 }],
+        channels: [{ name: 'ia', terms: [[0, 1]] }, { name: 'ib', terms: [[1, 1]] }, { name: 'ic', terms: [[2, 1]] }],
+        gateWidth: 30,
+        title: 'Three-phase half-wave rectifier (3-pulse)',
+        sourceNote: 'Vs = rms phase voltage (star source with neutral)',
+        vmFactor: 1
+      };
+    } else if (topo === 'FW') {
+      d = {
+        pulses: 6, bridge: false, nodes: ['u0', 'u1', 'u2', 'u3', 'u4', 'u5'],
+        u: (th, Vm) => [0, 1, 2, 3, 4, 5].map(k => Vm * Math.sin(th - k * Math.PI / 3)),
+        devices: [0, 1, 2, 3, 4, 5].map(k => dv(k + 1, 'top', k, (60 + 60 * k) % 360)),
+        plotSources: [{ name: 'va', k: 0 }, { name: 'vb', k: 2 }, { name: 'vc', k: 4 }],
+        channels: [
+          { name: 'ia', terms: [[0, 1], [3, -1]], label: 'ia (winding a)' },
+          { name: 'ib', terms: [[2, 1], [5, -1]], label: 'ib (winding b)' },
+          { name: 'ic', terms: [[4, 1], [1, -1]], label: 'ic (winding c)' }
+        ],
+        gateWidth: 30,
+        title: 'Three-phase full-wave rectifier (6-pulse, centre-tapped windings)',
+        sourceNote: 'Vs = rms voltage of each half-winding (six-phase star)',
+        vmFactor: 1
+      };
+    } else {
+      d = {
+        pulses: 6, bridge: true, nodes: ['a', 'b', 'c'],
+        u: (th, Vm) => [Vm * Math.sin(th), Vm * Math.sin(th - 2 * Math.PI / 3), Vm * Math.sin(th - 4 * Math.PI / 3)],
+        devices: [dv(1, 'top', 0, 30), dv(2, 'bot', 2, 90), dv(3, 'top', 1, 150),
+                  dv(4, 'bot', 0, 210), dv(5, 'top', 2, 270), dv(6, 'bot', 1, 330)],
+        plotSources: [{ name: 'va', k: 0 }, { name: 'vb', k: 1 }, { name: 'vc', k: 2 }],
+        channels: [{ name: 'ia', terms: [[0, 1]] }, { name: 'ib', terms: [[1, 1]] }, { name: 'ic', terms: [[2, 1]] }],
+        gateWidth: 80, // double-pulse equivalent: lets a discontinuous bridge start with two devices
+        title: topo === 'DBR' ? 'Three-phase diode bridge rectifier (6-pulse)' : 'Three-phase thyristor-controlled bridge rectifier (6-pulse)',
+        sourceNote: 'Vs = rms phase voltage (star source, line voltage = √3·Vs)',
+        vmFactor: 1
+      };
+    }
+    d.key = key;
+    d.phases = phases;
+    d.topo = topo;
+    d.deviceType = dev;
+    d.controlled = controlled;
+    d.name = TOPOLOGIES[topo].short + ' · ' + phases + 'φ';
+    d.devices.forEach(x => { x.top = x.group === 'top'; });
+    return d;
+  }
+
+  /* ---------- load chain: R, then L (if present), then E (if present), top → bottom ---------- */
+  function loadChain(load) {
+    const chain = [{ name: 'R', p1: 'R.1', p2: 'R.2' }];
+    if (load.Linf || load.L > 0) chain.push({ name: 'L', p1: 'L.1', p2: 'L.2' });
+    if (load.E > 0) chain.push({ name: 'E', p1: 'E.p', p2: 'E.n' });
+    return chain;
+  }
+
+  /* ---------- hand-written connectivity (pin-name nets) ---------- */
+  function netlist(def, load, fwd) {
+    const chain = loadChain(load);
+    const top = chain[0].p1, bot = chain[chain.length - 1].p2;
+    const nets = [];
+    for (let i = 0; i < chain.length - 1; i++) nets.push([chain[i].p2, chain[i + 1].p1]);
+    const P = [top], N = [bot];
+    if (fwd) { P.push('DF.k'); N.push('DF.a'); }
+    const id = k => def.devices[k].id;
+    const D = n => def.devices.find(x => x.id === def.devices[0].id.charAt(0) + n).id;
+
+    const k = def.key;
+    if (k === '1ph-HW') {
+      nets.push(['S0.p', id(0) + '.a']);
+      P.push(id(0) + '.k');
+      N.push('S0.n');
+    } else if (k === '1ph-FW') {
+      nets.push(['SRC.p', 'TX.p1'], ['SRC.n', 'TX.p2']);
+      nets.push(['TX.s1', D(1) + '.a'], ['TX.s2', D(2) + '.a']);
+      P.push(D(1) + '.k', D(2) + '.k');
+      N.push('TX.ct');
+    } else if (k === '1ph-DBR' || k === '1ph-TCR') {
+      nets.push(['S0.p', D(1) + '.a', D(4) + '.k']);
+      nets.push(['S0.n', D(3) + '.a', D(2) + '.k']);
+      P.push(D(1) + '.k', D(3) + '.k');
+      N.push(D(4) + '.a', D(2) + '.a');
+    } else if (k === '3ph-HW') {
+      for (let i = 0; i < 3; i++) { nets.push(['S' + i + '.p', D(i + 1) + '.a']); P.push(D(i + 1) + '.k'); N.push('S' + i + '.n'); }
+    } else if (k === '3ph-FW') {
+      for (let i = 0; i < 6; i++) { nets.push(['S' + i + '.p', D(i + 1) + '.a']); P.push(D(i + 1) + '.k'); N.push('S' + i + '.n'); }
+    } else { // 3-phase bridge
+      nets.push(['S0.p', D(1) + '.a', D(4) + '.k']);
+      nets.push(['S1.p', D(3) + '.a', D(6) + '.k']);
+      nets.push(['S2.p', D(5) + '.a', D(2) + '.k']);
+      nets.push(['S0.n', 'S1.n', 'S2.n']);
+      P.push(D(1) + '.k', D(3) + '.k', D(5) + '.k');
+      N.push(D(4) + '.a', D(6) + '.a', D(2) + '.a');
+    }
+    nets.push(P, N);
+    return nets;
+  }
+
+  const api = { TOPOLOGIES, circuitDef, loadChain, netlist };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.RL = root.RL || {}; root.RL.circuits = api; }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* sim.js — steady-state time-domain simulation of the rectifier circuits.
+ *
+ * Model: ideal sources and ideal switches (no source impedance, no overlap, no forward drop),
+ * series R-L-E load, optional freewheeling diode across the load.
+ * Method: fixed-step simulation (7200 steps per cycle = 0.05°) with an exact exponential update of the
+ * load inductor current for each step; devices commutate by comparing node voltages, thyristors need a
+ * gate pulse, and the whole thing is repeated cycle after cycle (with Aitken extrapolation) until the
+ * inductor current repeats from one cycle to the next (periodic steady state).
+ */
+(function (root) {
+  'use strict';
+  const C = typeof require !== 'undefined' ? require('./circuits.js') : root.RL.circuits;
+
+  const tableCache = {};
+  function unitTable(def, N) {
+    const key = def.key + ':' + N;
+    if (tableCache[key]) return tableCache[key];
+    const nk = def.nodes.length;
+    const U = Array.from({ length: nk }, () => new Float64Array(N));
+    for (let n = 0; n < N; n++) {
+      const th = (n + 0.5) * 2 * Math.PI / N;
+      const u = def.u(th, 1);
+      for (let k = 0; k < nk; k++) U[k][n] = u[k];
+    }
+    tableCache[key] = U;
+    return U;
+  }
+
+  const mean = a => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i]; return s / a.length; };
+  const rms = a => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * a[i]; return Math.sqrt(s / a.length); };
+
+  /* complex DFT coefficient of harmonic h of a one-cycle sample vector (samples at mid-step angles) */
+  function dftH(x, h) {
+    const N = x.length; let re = 0, im = 0;
+    for (let n = 0; n < N; n++) {
+      const a = h * (n + 0.5) * 2 * Math.PI / N;
+      re += x[n] * Math.cos(a); im += x[n] * Math.sin(a);
+    }
+    return { amp: 2 / N * Math.hypot(re, im), phase: Math.atan2(im, re) };
+  }
+  function spectrum(x, H) {
+    const out = [mean(x)];
+    for (let h = 1; h <= H; h++) out.push(dftH(x, h).amp);
+    return out;
+  }
+
+  function simulate(cfg) {
+    const def = C.circuitDef(cfg.phases, cfg.topo, cfg.device);
+    const N = cfg.steps || 7200;
+    const nd = def.devices.length, nk = def.nodes.length;
+    const Vm = Math.SQRT2 * cfg.Vrms;
+    const alpha = def.controlled ? cfg.alpha : 0;
+    const R = Math.max(cfg.R, 1e-3);
+    const E = Math.max(cfg.E || 0, 0);
+    const Linf = !!cfg.Linf;
+    const L = Linf ? Infinity : Math.max(cfg.L || 0, 0);
+    const hasFwd = !!cfg.fwd;
+    const T = 1 / cfg.f, dt = T / N, dth = 360 / N;
+    const Ut = unitTable(def, N);
+
+    const dev = def.devices;
+    const fire = dev.map(d => (d.nat + alpha) % 360);
+    const gw = def.gateWidth;
+    const isDiode = dev.map(d => d.kind === 'diode');
+    const tops = [], bots = [];
+    dev.forEach((d, i) => (d.group === 'top' ? tops : bots).push(i));
+    const bridge = def.bridge;
+
+    const on = new Uint8Array(nd);
+    const u = new Float64Array(nk);
+    let iL = 0;
+
+    function initLatches() {
+      on.fill(0);
+      for (let k = 0; k < nk; k++) u[k] = Ut[k][0];
+      let bt = -1, v = -Infinity;
+      tops.forEach(d => { if (u[dev[d].node] > v) { v = u[dev[d].node]; bt = d; } });
+      if (bt >= 0) on[bt] = 1;
+      if (bridge) {
+        let bb = -1; v = Infinity;
+        bots.forEach(d => { if (u[dev[d].node] < v) { v = u[dev[d].node]; bb = d; } });
+        if (bb >= 0) on[bb] = 1;
+      }
+    }
+
+    /* one electrical cycle; when rec is given every sample is stored */
+    function cycle(rec) {
+      for (let n = 0; n < N; n++) {
+        const th = (n + 0.5) * dth;
+        for (let k = 0; k < nk; k++) u[k] = Vm * Ut[k][n];
+
+        // device enable / selection
+        let bt = -1, vt = -Infinity;
+        for (let q = 0; q < tops.length; q++) {
+          const d = tops[q];
+          const g = ((th - fire[d] + 720) % 360) < gw;
+          if (isDiode[d] || on[d] || g) {
+            const val = u[dev[d].node] + (on[d] ? 1e-9 : 0);
+            if (val > vt) { vt = val; bt = d; }
+          }
+        }
+        let bb = -1, vb = Infinity;
+        if (bridge) {
+          for (let q = 0; q < bots.length; q++) {
+            const d = bots[q];
+            const g = ((th - fire[d] + 720) % 360) < gw;
+            if (isDiode[d] || on[d] || g) {
+              const val = u[dev[d].node] - (on[d] ? 1e-9 : 0);
+              if (val < vb) { vb = val; bb = d; }
+            }
+          }
+        }
+        const haveT = bt >= 0, haveB = bridge ? bb >= 0 : true;
+        const vP0 = haveT ? u[dev[bt].node] : NaN;
+        const vN0 = bridge ? (haveB ? u[dev[bb].node] : NaN) : 0;
+        const voc = (haveT && haveB) ? vP0 - vN0 : NaN;
+
+        // operating mode: 0 idle, 1 conducting through devices, 2 freewheeling diode
+        let mode = 0;
+        const cond = Linf ? true : (L > 0 ? iL > 1e-12 : false);
+        if (L > 0 || Linf) {
+          if (cond) {
+            if (hasFwd && !(voc >= 0)) mode = 2;
+            else if (haveT && haveB) mode = 1;
+            else mode = 0; // cannot happen in a consistent state; current is forced to zero below
+          } else if (haveT && haveB && voc > E) mode = 1;
+        } else if (haveT && haveB && voc > E) mode = 1;
+
+        let vo, P, Nn;
+        if (mode === 1) {
+          vo = voc; P = vP0; Nn = vN0;
+          on.fill(0); on[bt] = 1; if (bridge) on[bb] = 1;
+        } else {
+          if (mode === 2) { on.fill(0); vo = 0; }
+          else { vo = E; if (!(Linf)) on.fill(0); }
+          if (!bridge) { P = vo; Nn = 0; }
+          else {
+            let mt = 0, mb = 0;
+            for (let q = 0; q < tops.length; q++) mt += u[dev[tops[q]].node];
+            for (let q = 0; q < bots.length; q++) mb += u[dev[bots[q]].node];
+            mt /= tops.length; mb /= bots.length;
+            P = (mt + mb) / 2 + vo / 2; Nn = P - vo;
+          }
+        }
+
+        // current update
+        let iNew, ioRec, frac = 1;
+        if (Linf) { iNew = 1; ioRec = 1; }
+        else if (L > 0) {
+          if (mode === 0) { iNew = 0; ioRec = 0; iL = 0; }
+          else {
+            const Iinf = (vo - E) / R, a = Math.exp(-R * dt / L);
+            iNew = Iinf + (iL - Iinf) * a;
+            if (iNew <= 0) {
+              frac = iL > 0 ? iL / (iL - iNew) : 0;
+              ioRec = iL * frac / 2; iNew = 0; on.fill(0);
+            } else ioRec = (iL + iNew) / 2;
+          }
+        } else {
+          iNew = mode === 1 ? (vo - E) / R : 0; ioRec = iNew;
+          if (mode !== 1) on.fill(0);
+        }
+
+        if (rec) {
+          rec.vo[n] = vo; rec.io[n] = ioRec; rec.P[n] = P; rec.N[n] = Nn;
+          rec.mode[n] = mode; rec.bt[n] = mode === 1 ? bt : -1; rec.bb[n] = mode === 1 && bridge ? bb : -1;
+          for (let k = 0; k < nk; k++) rec.u[k][n] = u[k];
+          for (let d = 0; d < nd; d++) rec.on[d][n] = (mode === 1 && (d === bt || d === bb)) ? 1 : 0;
+          for (let d = 0; d < nd; d++) {
+            const g = ((th - fire[d] + 720) % 360) < gw;
+            rec.gate[d][n] = !isDiode[d] && g ? 1 : 0;
+          }
+        }
+        if (!Linf) iL = iNew;
+      }
+    }
+
+    function newRec() {
+      const f = () => new Float64Array(N);
+      return {
+        vo: f(), io: f(), P: f(), N: f(),
+        mode: new Uint8Array(N), bt: new Int8Array(N), bb: new Int8Array(N),
+        u: Array.from({ length: nk }, f),
+        on: Array.from({ length: nd }, () => new Uint8Array(N)),
+        gate: Array.from({ length: nd }, () => new Uint8Array(N))
+      };
+    }
+
+    const warnings = [];
+    let cycles = 0, converged = true, periodErr = 0;
+    let rec = newRec();
+
+    if (Linf) {
+      initLatches();
+      cycle(null); cycle(null); cycles = 2;
+      cycle(rec); cycles++;
+    } else {
+      const hist = [];
+      const maxCycles = 900;
+      converged = false;
+      while (cycles < maxCycles) {
+        const start = iL;
+        cycle(null); cycles++;
+        const err = Math.abs(iL - start);
+        if (err < 1e-9 + 1e-8 * Math.abs(iL)) { converged = true; break; }
+        hist.push(iL);
+        if (hist.length === 3) {
+          const d1 = hist[1] - hist[0], d2 = hist[2] - hist[1];
+          if (Math.abs(d2) > 1e-14 && d1 * d2 > 0 && Math.abs(d2) < Math.abs(d1)) {
+            const xs = hist[2] - d2 * d2 / (d2 - d1);
+            if (isFinite(xs) && xs >= 0) iL = xs;
+          }
+          hist.length = 0;
+        }
+      }
+      const start = iL;
+      cycle(rec); cycles++;
+      periodErr = Math.abs(iL - start);
+      if (!converged && periodErr < 1e-6 * Math.max(1, Math.abs(iL))) converged = true;
+      if (!converged) warnings.push('Steady state not fully reached; results are approximate.');
+    }
+
+    /* ---- post-processing ---- */
+    const theta = new Float64Array(N);
+    for (let n = 0; n < N; n++) theta[n] = (n + 0.5) * dth;
+
+    let io = rec.io, Id = 0;
+    if (Linf) {
+      const Vavg0 = mean(rec.vo);
+      Id = (Vavg0 - E) / R;
+      if (Id <= 1e-9) {
+        Id = 0;
+        warnings.push('With an ideal inductor the average output voltage (' + Vavg0.toFixed(1) + ' V) cannot exceed E, so no steady load current flows.');
+      }
+      io = new Float64Array(N).fill(Id);
+    }
+    const devI = dev.map((d, i) => {
+      const a = new Float64Array(N);
+      const on_ = rec.on[i];
+      if (Linf) { for (let n = 0; n < N; n++) a[n] = on_[n] ? Id : 0; }
+      else for (let n = 0; n < N; n++) a[n] = on_[n] ? io[n] : 0;
+      return a;
+    });
+    const ifwd = new Float64Array(N);
+    for (let n = 0; n < N; n++) ifwd[n] = rec.mode[n] === 2 ? io[n] : 0;
+    if (Linf && Id === 0) { for (let d = 0; d < nd; d++) devI[d].fill(0); }
+
+    // device voltages (anode − cathode)
+    const devV = dev.map((d, i) => {
+      const a = new Float64Array(N);
+      const uk = rec.u[d.node], on_ = rec.on[i];
+      if (d.group === 'top') for (let n = 0; n < N; n++) a[n] = on_[n] ? 0 : uk[n] - rec.P[n];
+      else for (let n = 0; n < N; n++) a[n] = on_[n] ? 0 : rec.N[n] - uk[n];
+      return a;
+    });
+    const vfwd = new Float64Array(N);
+    for (let n = 0; n < N; n++) vfwd[n] = rec.mode[n] === 2 ? 0 : rec.N[n] - rec.P[n];
+
+    // node currents drawn from the sources and the channel currents
+    const nodeI = Array.from({ length: nk }, () => new Float64Array(N));
+    dev.forEach((d, i) => {
+      const s = d.group === 'top' ? 1 : -1, ni = nodeI[d.node];
+      for (let n = 0; n < N; n++) ni[n] += s * devI[i][n];
+    });
+    const channels = def.channels.map(ch => {
+      const a = new Float64Array(N);
+      ch.terms.forEach(([k, s]) => { for (let n = 0; n < N; n++) a[n] += s * nodeI[k][n]; });
+      return { name: ch.name, label: ch.label || ch.name, data: a };
+    });
+    const plotSources = def.plotSources.map(ps => ({ name: ps.name, data: rec.u[ps.k] }));
+
+    /* ---- metrics ---- */
+    const Vavg = mean(rec.vo), Vrms = rms(rec.vo);
+    const Iavg = mean(io), Irms = rms(io);
+    let pout = 0, pin = 0;
+    for (let n = 0; n < N; n++) {
+      pout += rec.vo[n] * io[n];
+      for (let k = 0; k < nk; k++) pin += rec.u[k][n] * nodeI[k][n];
+    }
+    pout /= N; pin /= N;
+    const ch0 = channels[0].data;
+    const IsRms = rms(ch0), Is0 = mean(ch0);
+    const vref = plotSources[0].data;
+    const c1 = dftH(ch0, 1), v1 = dftH(vref, 1);
+    const dpf = c1.amp > 1e-12 ? Math.cos(c1.phase - v1.phase) : 1;
+    const thd = c1.amp > 1e-9 ? Math.sqrt(Math.max(IsRms * IsRms - Is0 * Is0 - c1.amp * c1.amp / 2, 0)) / (c1.amp / Math.SQRT2) : 0;
+    let S = 0; channels.forEach(ch => { S += cfg.Vrms * rms(ch.data); });
+    const pf = S > 1e-12 ? pin / S : 0;
+    let Imin = Infinity, Imax = -Infinity;
+    for (let n = 0; n < N; n++) { if (io[n] < Imin) Imin = io[n]; if (io[n] > Imax) Imax = io[n]; }
+    let conduction;
+    if (Linf) conduction = 'ideal';
+    else conduction = Imin > 1e-6 * Math.max(Imax, 1e-9) ? 'continuous' : 'discontinuous';
+
+    const metrics = {
+      Vavg, Vrms, Iavg, Irms, Pout: pout, Pin: pin,
+      eff: pin > 1e-9 ? pout / pin : 0,
+      ripple: Vavg > 1e-9 ? Math.sqrt(Math.max(Vrms * Vrms - Vavg * Vavg, 0)) / Vavg : NaN,
+      formFactor: Vavg > 1e-9 ? Vrms / Vavg : NaN,
+      Imin, Imax, IsRms, Is0, Is1rms: c1.amp / Math.SQRT2, thd, dpf, pf, S, conduction,
+      Vm, cycles, periodErr
+    };
+
+    return {
+      cfg, def, N, theta, T, dth,
+      vo: rec.vo, io, ifwd, vfwd, P: rec.P, N_: rec.N, mode: rec.mode, bt: rec.bt, bb: rec.bb,
+      u: rec.u, devI, devV, devOn: rec.on, gate: rec.gate, nodeI,
+      channels, plotSources, metrics, warnings, converged, Id
+    };
+  }
+
+  function deviceStats(res, i) {
+    const I = res.devI[i], V = res.devV[i], on = res.devOn[i];
+    let n = 0, vmin = 0, vmax = 0, ip = 0;
+    for (let k = 0; k < on.length; k++) {
+      n += on[k];
+      if (V[k] < vmin) vmin = V[k];
+      if (V[k] > vmax) vmax = V[k];
+      if (I[k] > ip) ip = I[k];
+    }
+    return { avg: mean(I), rms: rms(I), peak: ip, piv: -vmin, pfv: vmax, angle: n * res.dth };
+  }
+
+  const api = { simulate, deviceStats, spectrum, dftH, mean, rms };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.RL = root.RL || {}; root.RL.sim = api; }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* theory.js — closed-form reference results and per-circuit theory notes. */
+(function (root) {
+  'use strict';
+  const C = typeof require !== 'undefined' ? require('./circuits.js') : root.RL.circuits;
+
+  /* Average output voltage in closed form, or null when no closed form exists
+   * (finite L with discontinuous current, or any load with a back-emf E > 0 and L = 0). */
+  function analyticVavg(cfg) {
+    const def = C.circuitDef(cfg.phases, cfg.topo, cfg.device);
+    const p = def.pulses;
+    const Vm = Math.SQRT2 * cfg.Vrms;
+    const VmEff = (def.phases === 3 && def.bridge) ? Math.sqrt(3) * Vm : Vm;
+    const a = (def.controlled ? cfg.alpha : 0) * Math.PI / 180;
+    const Linf = !!cfg.Linf, L = cfg.L || 0, E = cfg.E || 0;
+    const isR = !Linf && L === 0 && E === 0;
+    if (!isR && !Linf) return null;
+
+    const resistive = () => {
+      if (p === 1) return VmEff * (1 + Math.cos(a)) / (2 * Math.PI);
+      const t0 = Math.PI / 2 - Math.PI / p;
+      if (a + t0 >= Math.PI) return 0; // fired after its phase voltage has already reversed: no conduction
+      if (a <= t0 + 1e-12) return p / Math.PI * VmEff * Math.sin(Math.PI / p) * Math.cos(a);
+      return p * VmEff / (2 * Math.PI) * (1 + Math.cos(a + t0));
+    };
+    if (isR) return { value: resistive(), basis: 'resistive load' };
+    if (cfg.fwd) return { value: resistive(), basis: 'ideal inductor with freewheeling diode' };
+    if (p === 1) return { value: 0, basis: 'ideal inductor, no freewheeling diode' };
+    return { value: p / Math.PI * VmEff * Math.sin(Math.PI / p) * Math.cos(a), basis: 'ideal inductor, continuous current' };
+  }
+
+  const NOTES = {
+    '1ph-HW': {
+      how: 'One device conducts only while the supply is positive (and, for a thyristor, after the gate pulse at α). With an inductive load the current outlives the positive half-cycle and the output voltage goes negative until the current dies out; a freewheeling diode removes that negative part.',
+      rows: [
+        ['Vavg, diode, R load', 'Vm / π  ≈ 0.318 Vm'],
+        ['Vrms, diode, R load', 'Vm / 2'],
+        ['Vavg, thyristor, R load', 'Vm (1 + cos α) / 2π'],
+        ['Ripple factor (diode, R)', '1.21'],
+        ['Peak inverse voltage', 'Vm'],
+        ['Device conduction', '≤ 180°, once per cycle']
+      ]
+    },
+    '1ph-FW': {
+      how: 'The centre-tapped secondary feeds two devices in alternate half-cycles, so both half-cycles reach the load. The two diodes block twice the half-winding voltage. The supply current is an AC square-ish wave with no DC component in the primary.',
+      rows: [
+        ['Vavg, diode, R load', '2Vm / π  ≈ 0.637 Vm'],
+        ['Vrms, diode, R load', 'Vm / √2'],
+        ['Vavg, thyristor, R load', 'Vm (1 + cos α) / π'],
+        ['Vavg, thyristor, L → ∞', '(2Vm / π) cos α'],
+        ['Ripple factor (diode, R)', '0.483'],
+        ['Peak inverse voltage', '2Vm']
+      ]
+    },
+    '1ph-DBR': {
+      how: 'Two diode pairs (D1-D2, D3-D4) take turns conducting, so the full supply voltage is rectified without a centre tap. Each diode blocks only Vm.',
+      rows: [
+        ['Vavg, R load', '2Vm / π  ≈ 0.637 Vm'],
+        ['Vrms, R load', 'Vm / √2'],
+        ['Ripple factor (R load)', '0.483'],
+        ['Peak inverse voltage', 'Vm'],
+        ['Supply current, L → ∞', 'square wave ±Id, THD 48.3 %'],
+        ['Power factor, L → ∞', '0.900 (= 2√2/π)']
+      ]
+    },
+    '1ph-TCR': {
+      how: 'Pairs T1-T2 and T3-T4 are fired at α after each zero crossing. With a highly inductive load the current is continuous and the output voltage is negative between the zero crossing and α, so the average falls as cos α and becomes negative (inverter operation) beyond 90° if a source E is present.',
+      rows: [
+        ['Vavg, L → ∞, continuous', '(2Vm / π) cos α'],
+        ['Vavg, R load', 'Vm (1 + cos α) / π'],
+        ['Vavg, with freewheeling diode', 'Vm (1 + cos α) / π'],
+        ['Peak inverse voltage', 'Vm'],
+        ['Displacement factor, L → ∞', 'cos α'],
+        ['Power factor, L → ∞', '(2√2 / π) cos α']
+      ]
+    },
+    '3ph-HW': {
+      how: 'The device whose phase voltage is highest conducts for 120° (diodes). Each phase current carries a DC component, which is why this circuit needs a neutral and is used mainly for teaching and low-power work. Thyristors are fired α after the natural commutation point (30° after the phase zero crossing).',
+      rows: [
+        ['Vavg, diode', '3√3 Vm / 2π  ≈ 0.827 Vm'],
+        ['Vavg, thyristor, α ≤ 30° (R) or L → ∞', '(3√3 Vm / 2π) cos α'],
+        ['Vavg, R load, α > 30°', '(3Vm / 2π) [1 + cos(α + 30°)]'],
+        ['Output ripple frequency', '3 × supply'],
+        ['Peak inverse voltage', '√3 Vm'],
+        ['Device conduction', '120°']
+      ]
+    },
+    '3ph-FW': {
+      how: 'Three centre-tapped secondary windings give a six-phase star; each of the six devices conducts for 60°. The output has six pulses per cycle, so ripple is small, but every device blocks 2Vm and carries current for only one sixth of the cycle.',
+      rows: [
+        ['Vavg, diode', '3Vm / π  ≈ 0.955 Vm'],
+        ['Vavg, thyristor, α ≤ 60° (R) or L → ∞', '(3Vm / π) cos α'],
+        ['Vavg, R load, α > 60°', '(3Vm / π) [1 + cos(α + 60°)]'],
+        ['Output ripple frequency', '6 × supply'],
+        ['Peak inverse voltage', '2Vm'],
+        ['Device conduction', '60°']
+      ]
+    },
+    '3ph-DBR': {
+      how: 'The top diode with the highest phase voltage and the bottom diode with the lowest phase voltage conduct together, so the output follows the highest line-to-line voltage. Each diode conducts for 120° and the line current is a 120° quasi-square wave.',
+      rows: [
+        ['Vavg', '3√3 Vm / π ≈ 1.654 Vm = 2.34 Vs'],
+        ['Vrms', '1.655 Vm'],
+        ['Output ripple frequency', '6 × supply'],
+        ['Peak inverse voltage', '√3 Vm'],
+        ['Line current, L → ∞', '120° blocks of ±Id, rms √(2/3) Id, THD 31 %'],
+        ['Power factor, L → ∞', '3/π = 0.955']
+      ]
+    },
+    '3ph-TCR': {
+      how: 'Thyristors are fired in the order T1…T6 at 60° intervals, each α after its natural point. A double (wide) gate pulse makes sure two devices start together when the current is discontinuous. For α > 90° with a source E the converter inverts.',
+      rows: [
+        ['Vavg, L → ∞, continuous', '(3√3 Vm / π) cos α'],
+        ['Vavg, R load, α > 60°', '(3√3 Vm / π) [1 + cos(α + 60°)]'],
+        ['Zero-output firing angle (R load)', '120°'],
+        ['Peak inverse voltage', '√3 Vm'],
+        ['Displacement factor, L → ∞', 'cos α'],
+        ['Power factor, L → ∞', '(3/π) cos α']
+      ]
+    }
+  };
+
+  function notesFor(def) { return NOTES[def.phases + 'ph-' + def.topo]; }
+
+  const api = { analyticVavg, notesFor };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.RL = root.RL || {}; root.RL.theory = api; }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* schematic.js — circuit schematics as data, rendered to SVG.
+ *
+ * A schematic is a list of components (with named pins at exact coordinates) and wires (polylines).
+ * Everything that is drawn can be read back:
+ *   extractNets()  rebuilds the connectivity from the drawn geometry (union of coincident points),
+ *                  so the tests can compare it with the hand-written netlist in circuits.js;
+ *   routeFor()     finds the current loop for a given conduction state by walking the drawn wires,
+ *                  which is what animates the current path (and fails loudly if a drawing is not connected);
+ *   checkLayout()  looks for wires running through component bodies and overlapping wires.
+ */
+(function (root) {
+  'use strict';
+  const C = typeof require !== 'undefined' ? require('./circuits.js') : root.RL.circuits;
+
+  const W = 740, H = 440;
+  const key = p => p[0] + ',' + p[1];
+  const unit = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy); return [dx / l, dy / l]; };
+  const f1 = n => (Math.round(n * 10) / 10).toString();
+  function num(v, unitStr) {
+    let s;
+    if (v >= 100) s = String(Math.round(v)); else if (v >= 10) s = String(Math.round(v * 10) / 10); else s = String(Math.round(v * 100) / 100);
+    return s + (unitStr ? ' ' + unitStr : '');
+  }
+
+  class Sch {
+    constructor(def, cfg) {
+      this.def = def; this.cfg = cfg; this.w = W; this.h = H;
+      this.comps = []; this.wires = []; this.texts = []; this.arrows = [];
+      this.pins = new Map();
+      this.hasPrimary = false;
+    }
+    pin(name, p) { this.pins.set(name, p.slice()); }
+    wire(id, pts, extra) { this.wires.push(Object.assign({ id, pts: pts.map(p => p.slice()) }, extra || {})); }
+    rail(id, y, xs, extra) { for (let i = 0; i < xs.length - 1; i++) this.wire(id + i, [[xs[i], y], [xs[i + 1], y]], extra); }
+    text(x, y, s, cls, anchor) { this.texts.push({ x, y, s, cls: cls || 'lbl', anchor: anchor || 'start' }); }
+    diode(id, a, k, c, opts) {
+      opts = opts || {};
+      this.comps.push({ kind: 'diode', id, a, k, c, scr: !!opts.scr, gs: opts.gs || 1 });
+      this.pin(id + '.a', a); this.pin(id + '.k', k);
+      if (opts.label !== false) {
+        const dx = opts.lx === undefined ? -16 : opts.lx, dy = opts.ly === undefined ? 4 : opts.ly;
+        this.text(c[0] + dx, c[1] + dy, id, 'lbl dev-lbl', opts.anchor || 'end');
+      }
+    }
+    acsrc(id, c, r, p, n, label, lp) {
+      this.comps.push({ kind: 'acsrc', id, c, r, p, n });
+      this.pin(id + '.p', p); this.pin(id + '.n', n);
+      if (label) this.text(lp[0], lp[1], label, 'lbl src-lbl', lp[2] || 'middle');
+    }
+  }
+
+  /* ------------------------------------------------------------------ load + freewheeling diode */
+  function addLoad(S, x, yT, yB, fwdX) {
+    const cfg = S.cfg, chain = C.loadChain(cfg);
+    const lens = { R: 44, L: 56, E: 30 };
+    const total = chain.reduce((s, e) => s + lens[e.name], 0);
+    const gap = (yB - yT - total) / (chain.length + 1);
+    let y = yT + gap, prev = [x, yT];
+    chain.forEach((e, i) => {
+      const top = [x, Math.round(y)], bot = [x, Math.round(y + lens[e.name])];
+      S.wire('ld' + i, [prev, top]);
+      S.comps.push({ kind: e.name === 'R' ? 'res' : e.name === 'L' ? 'ind' : 'bat', id: e.name, p1: top, p2: bot });
+      S.pin(e.p1, top); S.pin(e.p2, bot);
+      const val = e.name === 'R' ? 'R = ' + num(cfg.R, 'Ω') : e.name === 'L' ? (cfg.Linf ? 'L → ∞' : 'L = ' + num(cfg.L * 1000, 'mH')) : 'E = ' + num(cfg.E, 'V');
+      S.text(x + 18, (top[1] + bot[1]) / 2 + 4, val, 'lbl val-lbl');
+      prev = bot; y += lens[e.name] + gap;
+    });
+    S.wire('ld' + chain.length, [prev, [x, yB]]);
+    S.loadTop = chain[0].p1; S.loadBot = chain[chain.length - 1].p2;
+    S.loadX = x; S.yT = yT; S.yB = yB;
+    // output voltage / current annotations
+    S.text(x - 14, yT + 16, '+', 'lbl sign', 'end');
+    S.text(x - 14, yB - 8, '−', 'lbl sign', 'end');
+    S.text(x - 14, (yT + yB) / 2 + 4, 'vo', 'lbl it', 'end');
+    S.arrows.push({ x: x - 56, y: yT, dir: 'r' });
+    S.text(x - 56, yT - 12, 'io', 'lbl it', 'middle');
+    if (cfg.fwd) {
+      const k = [fwdX, yT + 70], a = [fwdX, yB - 70];
+      S.diode('DF', a, k, [fwdX, (yT + yB) / 2], { label: false });
+      S.wire('dfk', [[fwdX, yT], k]); S.wire('dfa', [a, [fwdX, yB]]);
+      S.text(fwdX + 14, (yT + yB) / 2 + 4, 'DF', 'lbl dev-lbl');
+    }
+  }
+
+  /* ------------------------------------------------------------------ the eight circuits */
+  function buildSchematic(cfg) {
+    const def = C.circuitDef(cfg.phases, cfg.topo, cfg.device);
+    const S = new Sch(def, cfg);
+    const scr = def.deviceType === 'scr';
+    const id = n => def.devices[0].id.charAt(0) + n;
+    const k = def.key;
+
+    if (k === '1ph-HW') {
+      S.acsrc('S0', [90, 240], 26, [90, 214], [90, 266], 'vs', [58, 244, 'end']);
+      S.wire('sp', [[90, 214], [90, 110], [190, 110]]);
+      S.diode(id(1), [190, 110], [290, 110], [240, 110], { scr, gs: 1, lx: 0, ly: -18, anchor: 'middle' });
+      S.rail('P', 110, [290, 560, 650]);
+      S.wire('sn', [[90, 266], [90, 370], [560, 370]]);
+      S.rail('N', 370, [560, 650]);
+      addLoad(S, 650, 110, 370, 560);
+    } else if (k === '1ph-FW') {
+      S.hasPrimary = true;
+      S.acsrc('SRC', [48, 235], 24, [48, 211], [48, 259], 'vs', [18, 239, 'end']);
+      S.wire('pp', [[48, 211], [48, 185], [104, 185]], { prim: true });
+      S.wire('pn', [[48, 259], [48, 285], [104, 285]], { prim: true });
+      S.comps.push({ kind: 'xfmr', id: 'TX', p1: [104, 185], p2: [104, 285], s1: [150, 130], ct: [150, 235], s2: [150, 340], cx1: 124, cx2: 130, sx: 150, px: 104 });
+      ['p1', 'p2', 's1', 'ct', 's2'].forEach(n => S.pin('TX.' + n, { p1: [104, 185], p2: [104, 285], s1: [150, 130], ct: [150, 235], s2: [150, 340] }[n]));
+      S.pin('SRC.p', [48, 211]); S.pin('SRC.n', [48, 259]);
+      S.wire('w1', [[150, 130], [250, 130]]);
+      S.wire('w2', [[150, 340], [250, 340]]);
+      S.diode(id(1), [250, 130], [350, 130], [300, 130], { scr, gs: 1, lx: 0, ly: -18, anchor: 'middle' });
+      S.diode(id(2), [250, 340], [350, 340], [300, 340], { scr, gs: -1, lx: 0, ly: 30, anchor: 'middle' });
+      S.wire('pk', [[350, 130], [410, 130]]);
+      S.wire('pj', [[350, 340], [410, 340], [410, 130]]);
+      S.rail('P', 130, [410, 560, 650]);
+      S.wire('ct', [[150, 235], [195, 235], [195, 395], [560, 395]]);
+      S.rail('N', 395, [560, 650]);
+      S.text(206, 227, 'N', 'lbl it');
+      addLoad(S, 650, 130, 395, 560);
+    } else if (k === '1ph-DBR' || k === '1ph-TCR') {
+      S.acsrc('S0', [260, 230], 26, [234, 230], [286, 230], 'vs', [260, 196]);
+      S.wire('wa', [[150, 230], [234, 230]]);
+      S.wire('wb', [[286, 230], [370, 230]]);
+      S.diode(id(1), [150, 230], [150, 90], [150, 160], { scr, gs: 1 });
+      S.diode(id(4), [150, 370], [150, 230], [150, 300], { scr, gs: 1 });
+      S.diode(id(3), [370, 230], [370, 90], [370, 160], { scr, gs: -1, lx: 16, anchor: 'start' });
+      S.diode(id(2), [370, 370], [370, 230], [370, 300], { scr, gs: -1, lx: 16, anchor: 'start' });
+      S.rail('P', 90, [150, 370, 560, 650]);
+      S.rail('N', 370, [150, 370, 560, 650]);
+      S.text(134, 224, 'A', 'lbl it', 'end');
+      S.text(386, 224, 'B', 'lbl it');
+      addLoad(S, 650, 90, 370, 560);
+    } else if (k === '3ph-HW') {
+      const rows = [200, 250, 300], xs = [230, 300, 370], lab = ['va', 'vb', 'vc'];
+      rows.forEach((y, i) => {
+        S.acsrc('S' + i, [90, y], 18, [108, y], [72, y], lab[i], [90, y - 23]);
+        S.wire('r' + i, [[108, y], [xs[i], y]]);
+        S.diode(id(i + 1), [xs[i], y], [xs[i], 100], [xs[i], 150], { scr, gs: -1, lx: 16, anchor: 'start' });
+      });
+      S.wire('nb', [[72, 200], [72, 250], [72, 300], [72, 370], [560, 370]]);
+      S.rail('N', 370, [560, 650]);
+      S.rail('P', 100, [230, 300, 370, 560, 650]);
+      S.text(60, 362, 'n', 'lbl it', 'end');
+      addLoad(S, 650, 100, 370, 560);
+    } else if (k === '3ph-FW') {
+      const rows = [140, 184, 228, 272, 316, 360], lab = ['va', '−vc', 'vb', '−va', 'vc', '−vb'];
+      const xs = rows.map((_, i) => 196 + 62 * i);
+      rows.forEach((y, i) => {
+        S.acsrc('S' + i, [80, y], 15, [95, y], [65, y], null);
+        S.text(104, y - 5, lab[i], 'lbl src-lbl');
+        S.wire('r' + i, [[95, y], [xs[i], y]]);
+        S.diode(id(i + 1), [xs[i], y], [xs[i], 90], [xs[i], 125], { scr, gs: -1, lx: 14, ly: 4, anchor: 'start' });
+      });
+      S.wire('nb', [[65, 140], [65, 184], [65, 228], [65, 272], [65, 316], [65, 360], [65, 410], [560, 410]]);
+      S.rail('N', 410, [560, 650]);
+      S.rail('P', 90, xs.concat([560, 650]));
+      S.text(50, 404, 'n', 'lbl it', 'end');
+      addLoad(S, 650, 90, 410, 560);
+    } else { // 3-phase bridge
+      const rows = [190, 235, 280], lx = [240, 320, 400], lab = ['va', 'vb', 'vc'];
+      rows.forEach((y, i) => {
+        S.acsrc('S' + i, [80, y], 15, [95, y], [65, y], null);
+        S.text(108, y - 5, lab[i], 'lbl src-lbl');
+        S.wire('r' + i, [[95, y], [lx[i], y]]);
+      });
+      S.wire('nb', [[65, 190], [65, 235], [65, 280]]);
+      S.text(52, 238, 'n', 'lbl it', 'end');
+      // top devices on phases a, b, c; bottom devices T4 (a), T6 (b), T2 (c)
+      S.diode(id(1), [240, 190], [240, 80], [240, 135], { scr, gs: 1 });
+      S.diode(id(3), [320, 235], [320, 80], [320, 150], { scr, gs: 1 });
+      S.diode(id(5), [400, 280], [400, 80], [400, 170], { scr, gs: 1 });
+      S.diode(id(4), [240, 390], [240, 190], [240, 350], { scr, gs: 1 });
+      S.diode(id(6), [320, 390], [320, 235], [320, 350], { scr, gs: 1 });
+      S.diode(id(2), [400, 390], [400, 280], [400, 345], { scr, gs: 1 });
+      S.rail('P', 80, [240, 320, 400, 560, 650]);
+      S.rail('N', 390, [240, 320, 400, 560, 650]);
+      addLoad(S, 650, 80, 390, 560);
+    }
+    S.title = def.title;
+    return S;
+  }
+
+  /* ------------------------------------------------------------------ geometry helpers */
+  function leadSegs(c) {
+    if (c.kind === 'diode') {
+      const u = unit(c.a, c.k);
+      return [[c.a, [c.c[0] - u[0] * 10, c.c[1] - u[1] * 10]], [[c.c[0] + u[0] * 10, c.c[1] + u[1] * 10], c.k]];
+    }
+    return [];
+  }
+  function bodyBox(c) {
+    if (c.kind === 'diode') {
+      const u = unit(c.a, c.k), n = [-u[1], u[0]];
+      const half = 11, w = c.scr ? 17 : 9;
+      const ext = [c.c[0] - u[0] * half - n[0] * w, c.c[1] - u[1] * half - n[1] * w, c.c[0] + u[0] * half + n[0] * w, c.c[1] + u[1] * half + n[1] * w];
+      // gate stub reaches out on one side only
+      const gx = c.c[0] + n[0] * c.gs * (c.scr ? 17 : 9), gy = c.c[1] + n[1] * c.gs * (c.scr ? 17 : 9);
+      const ox = c.c[0] - n[0] * c.gs * 9, oy = c.c[1] - n[1] * c.gs * 9;
+      const xs = [c.c[0] - u[0] * half, c.c[0] + u[0] * half, gx, ox], ys = [c.c[1] - u[1] * half, c.c[1] + u[1] * half, gy, oy];
+      return [Math.min.apply(null, xs), Math.min.apply(null, ys), Math.max.apply(null, xs), Math.max.apply(null, ys)];
+    }
+    if (c.kind === 'acsrc') return [c.c[0] - c.r, c.c[1] - c.r, c.c[0] + c.r, c.c[1] + c.r];
+    if (c.kind === 'res') return [c.p1[0] - 9, c.p1[1] + 8, c.p1[0] + 9, c.p2[1] - 8];
+    if (c.kind === 'ind') return [c.p1[0] - 10, c.p1[1] + 8, c.p1[0] + 12, c.p2[1] - 8];
+    if (c.kind === 'bat') return [c.p1[0] - 12, c.p1[1] + 9, c.p1[0] + 12, c.p2[1] - 9];
+    if (c.kind === 'xfmr') return [c.px - 2, c.s1[1] - 4, c.sx + 2, c.s2[1] + 4];
+    return null;
+  }
+  function segHitsBox(p, q, b) {
+    const x0 = b[0] + 2, y0 = b[1] + 2, x1 = b[2] - 2, y1 = b[3] - 2;
+    if (x1 <= x0 || y1 <= y0) return false;
+    if (p[0] === q[0]) { return p[0] > x0 && p[0] < x1 && Math.max(Math.min(p[1], q[1]), y0) < Math.min(Math.max(p[1], q[1]), y1); }
+    if (p[1] === q[1]) { return p[1] > y0 && p[1] < y1 && Math.max(Math.min(p[0], q[0]), x0) < Math.min(Math.max(p[0], q[0]), x1); }
+    return false;
+  }
+  function wireSegments(S) {
+    const out = [];
+    S.wires.forEach(w => { for (let i = 0; i < w.pts.length - 1; i++) out.push({ wire: w, p: w.pts[i], q: w.pts[i + 1] }); });
+    return out;
+  }
+
+  function checkLayout(S) {
+    const problems = [];
+    const segs = wireSegments(S);
+    const boxes = S.comps.map(c => ({ id: c.id, b: bodyBox(c) })).filter(x => x.b);
+    segs.forEach(s => {
+      if (s.p[0] !== s.q[0] && s.p[1] !== s.q[1]) problems.push('diagonal wire ' + s.wire.id);
+      boxes.forEach(bx => { if (segHitsBox(s.p, s.q, bx.b)) problems.push('wire ' + s.wire.id + ' passes through ' + bx.id); });
+    });
+    // overlapping collinear wire segments
+    for (let i = 0; i < segs.length; i++) for (let j = i + 1; j < segs.length; j++) {
+      const a = segs[i], b = segs[j];
+      if (a.wire === b.wire) continue;
+      if (a.p[1] === a.q[1] && b.p[1] === b.q[1] && a.p[1] === b.p[1]) {
+        const lo = Math.max(Math.min(a.p[0], a.q[0]), Math.min(b.p[0], b.q[0])), hi = Math.min(Math.max(a.p[0], a.q[0]), Math.max(b.p[0], b.q[0]));
+        if (hi - lo > 0.5) problems.push('overlap ' + a.wire.id + '/' + b.wire.id);
+      }
+      if (a.p[0] === a.q[0] && b.p[0] === b.q[0] && a.p[0] === b.p[0]) {
+        const lo = Math.max(Math.min(a.p[1], a.q[1]), Math.min(b.p[1], b.q[1])), hi = Math.min(Math.max(a.p[1], a.q[1]), Math.max(b.p[1], b.q[1]));
+        if (hi - lo > 0.5) problems.push('overlap ' + a.wire.id + '/' + b.wire.id);
+      }
+    }
+    // a wire may not end in mid-air: every wire end must meet a pin or another wire
+    const count = new Map();
+    S.wires.forEach(w => [w.pts[0], w.pts[w.pts.length - 1]].forEach(p => count.set(key(p), (count.get(key(p)) || 0) + 1)));
+    S.pins.forEach(p => count.set(key(p), (count.get(key(p)) || 0) + 1));
+    S.wires.forEach(w => [w.pts[0], w.pts[w.pts.length - 1]].forEach(p => { if (count.get(key(p)) < 2) problems.push('dangling end of ' + w.id + ' at ' + key(p)); }));
+    return problems;
+  }
+
+  /* connectivity read back from the drawing: pins that share a net */
+  function extractNets(S) {
+    const parent = new Map();
+    const find = a => { while (parent.get(a) !== a) { parent.set(a, parent.get(parent.get(a))); a = parent.get(a); } return a; };
+    const add = a => { if (!parent.has(a)) parent.set(a, a); };
+    const union = (a, b) => { add(a); add(b); parent.set(find(a), find(b)); };
+    S.wires.forEach(w => { for (let i = 0; i < w.pts.length - 1; i++) union(key(w.pts[i]), key(w.pts[i + 1])); });
+    S.pins.forEach(p => add(key(p)));
+    const groups = new Map();
+    S.pins.forEach((p, name) => { const r = find(key(p)); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(name); });
+    return Array.from(groups.values()).map(g => g.sort());
+  }
+
+  /* ------------------------------------------------------------------ current-path routing */
+  function buildGraph(S) {
+    const edges = [];
+    const addEdge = (u, v, kind, ref, seg) => edges.push({ u: key(u), v: key(v), kind, ref, seg });
+    S.wires.forEach(w => {
+      for (let i = 0; i < w.pts.length - 1; i++) {
+        const p = w.pts[i], q = w.pts[i + 1];
+        addEdge(p, q, w.prim ? 'primwire' : 'wire', w.id, { x1: p[0], y1: p[1], x2: q[0], y2: q[1] });
+      }
+    });
+    S.comps.forEach(c => {
+      if (c.kind === 'diode') addEdge(c.a, c.k, 'dev', c.id);
+      else if (c.kind === 'acsrc') addEdge(c.n, c.p, c.id === 'SRC' ? 'primsrc' : 'src', c.id);
+      else if (c.kind === 'xfmr') { addEdge(c.ct, c.s1, 'src', c.id); addEdge(c.ct, c.s2, 'src', c.id); addEdge(c.p1, c.p2, 'prim', c.id); }
+      else if (c.kind === 'res' || c.kind === 'ind' || c.kind === 'bat') addEdge(c.p1, c.p2, 'load', c.id);
+    });
+    return edges;
+  }
+  function findPath(edges, start, end, kinds) {
+    if (start === end) return [];
+    const adj = new Map();
+    edges.forEach((e, i) => {
+      if (!kinds.has(e.kind)) return;
+      if (!adj.has(e.u)) adj.set(e.u, []); if (!adj.has(e.v)) adj.set(e.v, []);
+      adj.get(e.u).push([e.v, i, 1]); adj.get(e.v).push([e.u, i, -1]);
+    });
+    const prev = new Map([[start, null]]), queue = [start];
+    while (queue.length) {
+      const cur = queue.shift();
+      if (cur === end) break;
+      (adj.get(cur) || []).forEach(([nx, i, dir]) => { if (!prev.has(nx)) { prev.set(nx, [cur, i, dir]); queue.push(nx); } });
+    }
+    if (!prev.has(end)) return null;
+    const steps = [];
+    let cur = end;
+    while (prev.get(cur)) { const [pc, i, dir] = prev.get(cur); steps.push({ edge: edges[i], dir }); cur = pc; }
+    return steps.reverse();
+  }
+
+  /* state: { kt: 'T1'|null, kb: 'T2'|null, fwd: bool, primSign: ±1 }  → { segs, els, ok } */
+  function routeFor(S, st) {
+    if (!S._edges) S._edges = buildGraph(S);
+    const E = S._edges, pk = n => key(S.pins.get(n));
+    const segs = [], els = new Set();
+    let ok = true;
+    const takeSteps = (steps, flip) => {
+      if (!steps) { ok = false; return; }
+      steps.forEach(s => {
+        if (s.edge.seg) {
+          const g = s.edge.seg, fwd = (s.dir === 1) !== !!flip;
+          segs.push(fwd ? { x1: g.x1, y1: g.y1, x2: g.x2, y2: g.y2 } : { x1: g.x2, y1: g.y2, x2: g.x1, y2: g.y1 });
+        } else els.add(s.edge.ref);
+      });
+    };
+    const WIRE = new Set(['wire']), LOADK = new Set(['wire', 'load']), RET = new Set(['wire', 'src']);
+    if (st.fwd) {
+      els.add('DF');
+      takeSteps(findPath(E, pk('DF.k'), pk(S.loadTop), WIRE));
+      takeSteps(findPath(E, pk(S.loadTop), pk(S.loadBot), LOADK));
+      takeSteps(findPath(E, pk(S.loadBot), pk('DF.a'), WIRE));
+    } else if (st.kt) {
+      els.add(st.kt);
+      takeSteps(findPath(E, pk(st.kt + '.k'), pk(S.loadTop), WIRE));
+      takeSteps(findPath(E, pk(S.loadTop), pk(S.loadBot), LOADK));
+      let end = pk(S.loadBot);
+      if (st.kb) {
+        takeSteps(findPath(E, end, pk(st.kb + '.a'), WIRE));
+        els.add(st.kb);
+        end = pk(st.kb + '.k');
+      }
+      takeSteps(findPath(E, end, pk(st.kt + '.a'), RET));
+    }
+    if (S.hasPrimary && st.kt && st.primSign) {
+      const flip = st.primSign < 0;
+      takeSteps(findPath(E, pk('SRC.p'), pk('SRC.n'), new Set(['primwire', 'prim'])), flip);
+      els.add('SRC');
+    }
+    return { segs, els, ok };
+  }
+
+  /* ------------------------------------------------------------------ SVG rendering */
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
+  function renderComp(c) {
+    const g = (cls, inner) => '<g class="c ' + cls + '" data-id="' + c.id + '">' + inner + '</g>';
+    if (c.kind === 'diode') {
+      const u = unit(c.a, c.k), n = [-u[1], u[0]];
+      const P = (t, s) => [c.c[0] + u[0] * t + n[0] * s, c.c[1] + u[1] * t + n[1] * s].map(f1).join(',');
+      let s = '<path class="st" d="M' + f1(c.a[0]) + ',' + f1(c.a[1]) + ' L' + P(-10, 0) + ' M' + P(10, 0) + ' L' + f1(c.k[0]) + ',' + f1(c.k[1]) + '"/>';
+      s += '<path class="st fl" d="M' + P(-10, 9) + ' L' + P(-10, -9) + ' L' + P(10, 0) + ' Z"/>';
+      s += '<path class="st" d="M' + P(10, 9) + ' L' + P(10, -9) + '"/>';
+      if (c.scr) {
+        s += '<path class="st" d="M' + P(0, 4.5 * c.gs) + ' L' + P(8, 16 * c.gs) + '"/>';
+        s += '<text class="lbl gate" x="' + P(8, 23 * c.gs).split(',')[0] + '" y="' + (parseFloat(P(8, 23 * c.gs).split(',')[1]) + 4) + '" text-anchor="middle">G</text>';
+      }
+      return g('dev' + (c.id === 'DF' ? ' fwd' : ''), s);
+    }
+    if (c.kind === 'acsrc') {
+      const r = c.r, x = c.c[0], y = c.c[1];
+      const sw = r * 0.55;
+      return g('src', '<circle class="st" cx="' + x + '" cy="' + y + '" r="' + r + '"/><path class="st" d="M' + f1(x - sw) + ',' + y + ' q' + f1(sw / 2) + ',' + f1(-r * 0.62) + ' ' + f1(sw) + ',0 t' + f1(sw) + ',0"/>');
+    }
+    if (c.kind === 'res') {
+      const x = c.p1[0], y0 = c.p1[1], y1 = c.p2[1], b0 = y0 + 8, b1 = y1 - 8, n = 6, dy = (b1 - b0) / n;
+      let d = 'M' + x + ',' + y0 + ' L' + x + ',' + b0;
+      for (let i = 0; i < n; i++) d += ' L' + (x + (i % 2 === 0 ? 8 : -8)) + ',' + f1(b0 + dy * (i + 0.5));
+      d += ' L' + x + ',' + b1 + ' L' + x + ',' + y1;
+      return g('load res', '<path class="st" d="' + d + '"/>');
+    }
+    if (c.kind === 'ind') {
+      const x = c.p1[0], y0 = c.p1[1], y1 = c.p2[1], b0 = y0 + 8, b1 = y1 - 8, n = 4, dy = (b1 - b0) / n, r = dy / 2;
+      let d = 'M' + x + ',' + y0 + ' L' + x + ',' + b0;
+      for (let i = 0; i < n; i++) d += ' A' + f1(r) + ',' + f1(r) + ' 0 0 1 ' + x + ',' + f1(b0 + dy * (i + 1));
+      d += ' L' + x + ',' + y1;
+      return g('load ind', '<path class="st" d="' + d + '"/>');
+    }
+    if (c.kind === 'bat') {
+      const x = c.p1[0], y0 = c.p1[1], y1 = c.p2[1], m = (y0 + y1) / 2;
+      return g('load bat', '<path class="st" d="M' + x + ',' + y0 + ' L' + x + ',' + (m - 4) + ' M' + (x - 12) + ',' + (m - 4) + ' L' + (x + 12) + ',' + (m - 4) + ' M' + x + ',' + (m + 4) + ' L' + x + ',' + y1 + ' M' + (x - 6) + ',' + (m + 4) + ' L' + (x + 6) + ',' + (m + 4) + '"/><text class="lbl sign" x="' + (x - 15) + '" y="' + (m - 6) + '" text-anchor="end">+</text>');
+    }
+    if (c.kind === 'xfmr') {
+      const coil = (x, y0, y1, n, side) => {
+        const dy = (y1 - y0) / n, r = dy / 2;
+        let d = 'M' + x + ',' + y0;
+        for (let i = 0; i < n; i++) d += ' A' + f1(r) + ',' + f1(r) + ' 0 0 ' + (side > 0 ? 1 : 0) + ' ' + x + ',' + f1(y0 + dy * (i + 1));
+        return '<path class="st" d="' + d + '"/>';
+      };
+      return g('xfmr', coil(c.px, c.p1[1], c.p2[1], 4, 1) + coil(c.sx, c.s1[1], c.s2[1], 6, 0) +
+        '<path class="st" d="M' + c.cx1 + ',' + (c.s1[1] - 6) + ' L' + c.cx1 + ',' + (c.s2[1] + 6) + ' M' + c.cx2 + ',' + (c.s1[1] - 6) + ' L' + c.cx2 + ',' + (c.s2[1] + 6) + '"/>');
+    }
+    return '';
+  }
+
+  function renderSVG(S) {
+    const segs = wireSegments(S);
+    // hop-overs where a horizontal wire crosses a vertical wire or component lead (not at a joint)
+    const vert = [];
+    segs.forEach(s => { if (s.p[0] === s.q[0]) vert.push([s.p, s.q]); });
+    S.comps.forEach(c => leadSegs(c).forEach(l => { if (l[0][0] === l[1][0]) vert.push(l); }));
+    let wires = '';
+    segs.forEach(s => {
+      if (s.p[1] !== s.q[1]) { wires += '<path class="w" d="M' + s.p[0] + ',' + s.p[1] + ' L' + s.q[0] + ',' + s.q[1] + '"/>'; return; }
+      const y = s.p[1], xa = Math.min(s.p[0], s.q[0]), xb = Math.max(s.p[0], s.q[0]);
+      const hops = [];
+      vert.forEach(v => {
+        const x = v[0][0], ya = Math.min(v[0][1], v[1][1]), yb = Math.max(v[0][1], v[1][1]);
+        if (x > xa + 7 && x < xb - 7 && y > ya + 0.5 && y < yb - 0.5) hops.push(x);
+      });
+      hops.sort((a, b) => a - b);
+      let d = 'M' + xa + ',' + y;
+      hops.forEach(x => { d += ' L' + (x - 6) + ',' + y + ' A6,6 0 0 1 ' + (x + 6) + ',' + y; });
+      d += ' L' + xb + ',' + y;
+      wires += '<path class="w" d="' + d + '"/>';
+    });
+    // junction dots
+    const deg = new Map();
+    const bump = (p, n) => deg.set(key(p), (deg.get(key(p)) || 0) + n);
+    S.wires.forEach(w => w.pts.forEach((p, i) => bump(p, i === 0 || i === w.pts.length - 1 ? 1 : 2)));
+    S.pins.forEach(p => bump(p, 1));
+    let dots = '';
+    deg.forEach((n, k) => { if (n >= 3) { const [x, y] = k.split(','); dots += '<circle class="dot" cx="' + x + '" cy="' + y + '" r="3.2"/>'; } });
+    // arrows
+    let arrows = '';
+    S.arrows.forEach(a => { arrows += '<path class="arrow" d="M' + (a.x - 7) + ',' + (a.y - 4.5) + ' L' + (a.x + 5) + ',' + a.y + ' L' + (a.x - 7) + ',' + (a.y + 4.5) + ' Z"/>'; });
+    const comps = S.comps.map(renderComp).join('');
+    const texts = S.texts.map(t => '<text class="' + t.cls + '" x="' + t.x + '" y="' + t.y + '" text-anchor="' + t.anchor + '">' + esc(t.s) + '</text>').join('');
+    return '<svg class="sch" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + S.w + ' ' + S.h + '" role="img" aria-label="' + esc(S.title) + ' schematic">' +
+      '<g class="wires">' + wires + '</g><g class="flow"></g><g class="comps">' + comps + '</g><g class="dots">' + dots + '</g><g class="arrows">' + arrows + '</g><g class="texts">' + texts + '</g></svg>';
+  }
+
+  const api = { buildSchematic, renderSVG, extractNets, checkLayout, routeFor, W, H };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.RL = root.RL || {}; root.RL.schematic = api; }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* plots.js — canvas waveform panels, conduction timing chart and harmonic bar chart.
+ * Each panel caches its static drawing (axes, traces) in an offscreen bitmap; the moving cursor and
+ * hover crosshair are drawn on top, so animation stays smooth.
+ */
+(function (root) {
+  'use strict';
+
+  const M = { l: 58, r: 12, t: 10, b: 24 };
+
+  function niceStep(range, target) {
+    const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+  }
+  function fmtTick(v, step) {
+    if (Math.abs(v) < step * 1e-6) return '0';
+    const d = step >= 1 ? 0 : Math.min(3, Math.ceil(-Math.log10(step)));
+    return v.toFixed(d);
+  }
+  function theme(el) {
+    const cs = getComputedStyle(el);
+    const g = n => cs.getPropertyValue(n).trim();
+    return {
+      surface: g('--plot-bg'), grid: g('--plot-grid'), axis: g('--plot-axis'), text: g('--text-2'), ink: g('--text'),
+      cursor: g('--cursor'), accent: g('--accent'), dim: g('--plot-dim'),
+      vs: [g('--c-a'), g('--c-b'), g('--c-c'), g('--c-d'), g('--c-e'), g('--c-f')],
+      vo: g('--c-vo'), io: g('--c-io'), id: g('--c-id'), vd: g('--c-vd'), fwd: g('--c-fwd'), bar: g('--c-bar')
+    };
+  }
+
+  function setupCanvas(canvas) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    }
+    return { dpr, w, h };
+  }
+
+  /* ------------------------------------------------------------ line panels */
+  class LinePanel {
+    constructor(canvas) {
+      this.canvas = canvas; this.spec = null; this.base = document.createElement('canvas');
+      this.dirty = true; this.theta = null;
+    }
+    set(spec) { this.spec = spec; this.dirty = true; }
+    invalidate() { this.dirty = true; }
+    plotRect() { const { w, h } = setupCanvas(this.canvas); return { x0: M.l, x1: w - M.r, y0: M.t, y1: h - M.b, w, h }; }
+    xToIndex(px) {
+      const r = this.plotRect(), N = this.spec.N;
+      const f = (px - r.x0) / (r.x1 - r.x0);
+      return Math.max(0, Math.min(N - 1, Math.round(f * N - 0.5)));
+    }
+    yRange() {
+      const s = this.spec; let lo = 0, hi = 0;
+      s.series.forEach(se => { const d = se.data; for (let i = 0; i < d.length; i += 2) { if (d[i] < lo) lo = d[i]; if (d[i] > hi) hi = d[i]; } });
+      (s.hlines || []).forEach(l => { lo = Math.min(lo, l.y); hi = Math.max(hi, l.y); });
+      if (hi - lo < 1e-9) { hi = lo + 1; }
+      const pad = (hi - lo) * 0.08;
+      if (hi > 0) hi += pad; if (lo < 0) lo -= pad;
+      return [lo, hi];
+    }
+    drawBase() {
+      const { dpr, w, h } = setupCanvas(this.canvas);
+      this.base.width = this.canvas.width; this.base.height = this.canvas.height;
+      const ctx = this.base.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const T = theme(this.canvas), s = this.spec;
+      ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+      const x0 = M.l, x1 = w - M.r, y0 = M.t, y1 = h - M.b;
+      const [lo, hi] = this.yRange();
+      this.lo = lo; this.hi = hi;
+      const X = th => x0 + (x1 - x0) * th / 360, Y = v => y1 - (y1 - y0) * (v - lo) / (hi - lo);
+      this.X = X; this.Y = Y;
+      ctx.font = '11px ' + getComputedStyle(this.canvas).getPropertyValue('--font-num');
+      ctx.textBaseline = 'middle';
+      // y grid
+      const step = niceStep(hi - lo, Math.max(3, Math.floor((y1 - y0) / 34)));
+      ctx.lineWidth = 1;
+      for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-6; v += step) {
+        const y = Math.round(Y(v)) + 0.5;
+        ctx.strokeStyle = Math.abs(v) < step * 1e-6 ? T.axis : T.grid;
+        ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+        ctx.fillStyle = T.text; ctx.textAlign = 'right'; ctx.fillText(fmtTick(v, step), x0 - 7, y);
+      }
+      // x grid
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let th = 0; th <= 360; th += 30) {
+        const x = Math.round(X(th)) + 0.5, major = th % 60 === 0;
+        ctx.strokeStyle = major ? T.grid : T.dim; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+        if (major) { ctx.fillStyle = T.text; ctx.fillText(th + '°', x, y1 + 6); }
+      }
+      // frame
+      ctx.strokeStyle = T.axis; ctx.strokeRect(x0 + 0.5, y0 + 0.5, x1 - x0, y1 - y0);
+      // hlines (averages)
+      (s.hlines || []).forEach(l => {
+        ctx.strokeStyle = l.color; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+        const y = Math.round(Y(l.y)) + 0.5;
+        ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); ctx.setLineDash([]);
+        ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+        const tw = ctx.measureText(l.label).width;
+        ctx.fillStyle = T.surface; ctx.globalAlpha = 0.85; ctx.fillRect(x1 - tw - 10, y - 17, tw + 8, 15); ctx.globalAlpha = 1;
+        ctx.fillStyle = T.ink; ctx.fillText(l.label, x1 - 6, y - 3);
+      });
+      // traces
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, y0 - 1, x1 - x0, y1 - y0 + 2); ctx.clip();
+      s.series.forEach(se => {
+        ctx.strokeStyle = se.color; ctx.lineWidth = se.width || 1.8; ctx.lineJoin = 'round';
+        ctx.setLineDash(se.dash || []);
+        ctx.beginPath();
+        const d = se.data, N = d.length;
+        for (let i = 0; i < N; i++) {
+          const th = (i + 0.5) * 360 / N, x = X(th), y = Y(d[i]);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+      });
+      ctx.restore();
+      this.dirty = false;
+    }
+    draw(cursor, hover) {
+      if (!this.spec) return;
+      const { dpr, w, h } = setupCanvas(this.canvas);
+      if (this.dirty || this.base.width !== this.canvas.width || this.base.height !== this.canvas.height) this.drawBase();
+      const ctx = this.canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(this.base, 0, 0);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const T = theme(this.canvas), N = this.spec.N, y0 = M.t, y1 = h - M.b;
+      const mark = (idx, color, dots, dash) => {
+        const x = Math.round(this.X((idx + 0.5) * 360 / N)) + 0.5;
+        ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash(dash || []);
+        ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); ctx.setLineDash([]);
+        if (dots) this.spec.series.forEach(se => {
+          const y = this.Y(se.data[idx]);
+          ctx.fillStyle = se.color; ctx.strokeStyle = T.surface; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(x, y, 4, 0, 6.2832); ctx.stroke(); ctx.fill();
+        });
+      };
+      if (hover !== null && hover !== undefined) mark(hover, T.dim === T.grid ? T.axis : T.text, false, [3, 3]);
+      if (cursor !== null && cursor !== undefined) mark(cursor, T.cursor, true);
+    }
+  }
+
+  /* ------------------------------------------------------------ conduction timing (Gantt) */
+  class GanttPanel {
+    constructor(canvas) { this.canvas = canvas; this.spec = null; this.base = document.createElement('canvas'); this.dirty = true; }
+    set(spec) { this.spec = spec; this.dirty = true; }
+    invalidate() { this.dirty = true; }
+    xToIndex(px) {
+      const { w } = setupCanvas(this.canvas), N = this.spec.N, f = (px - M.l) / (w - M.r - M.l);
+      return Math.max(0, Math.min(N - 1, Math.round(f * N - 0.5)));
+    }
+    drawBase() {
+      const { dpr, w, h } = setupCanvas(this.canvas);
+      this.base.width = this.canvas.width; this.base.height = this.canvas.height;
+      const ctx = this.base.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const T = theme(this.canvas), s = this.spec, N = s.N;
+      ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+      const x0 = M.l, x1 = w - M.r, y0 = M.t, y1 = h - M.b, rows = s.rows.length;
+      const rh = (y1 - y0) / rows, X = th => x0 + (x1 - x0) * th / 360;
+      ctx.font = '11px ' + getComputedStyle(this.canvas).getPropertyValue('--font-num');
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let th = 0; th <= 360; th += 30) {
+        const x = Math.round(X(th)) + 0.5, major = th % 60 === 0;
+        ctx.strokeStyle = major ? T.grid : T.dim; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+        if (major) { ctx.fillStyle = T.text; ctx.fillText(th + '°', x, y1 + 6); }
+      }
+      s.rows.forEach((r, i) => {
+        const yt = y0 + i * rh, yb = yt + rh;
+        ctx.strokeStyle = T.grid; ctx.beginPath(); ctx.moveTo(x0, Math.round(yb) + 0.5); ctx.lineTo(x1, Math.round(yb) + 0.5); ctx.stroke();
+        ctx.fillStyle = T.ink; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(r.label, x0 - 8, yt + rh / 2);
+        // conduction bars (merge consecutive samples)
+        ctx.fillStyle = r.color;
+        let start = -1;
+        for (let n = 0; n <= N; n++) {
+          const v = n < N ? r.on[n] : 0;
+          if (v && start < 0) start = n;
+          if (!v && start >= 0) {
+            const xa = X(start * 360 / N), xb = X(n * 360 / N);
+            ctx.fillRect(xa, yt + rh * 0.22, Math.max(1, xb - xa), rh * 0.56);
+            start = -1;
+          }
+        }
+        // wrap-around join is already continuous because bars end at 360° and restart at 0°
+        // gate pulse starts
+        if (r.gate) {
+          ctx.fillStyle = T.ink;
+          for (let n = 0; n < N; n++) {
+            const prev = r.gate[(n + N - 1) % N];
+            if (r.gate[n] && !prev) {
+              const x = X(n * 360 / N);
+              ctx.beginPath(); ctx.moveTo(x, yt + rh * 0.12); ctx.lineTo(x + 4, yt + rh * 0.12 - 0); ctx.lineTo(x, yt + rh * 0.12 + 5); ctx.closePath(); ctx.fill();
+            }
+          }
+        }
+      });
+      ctx.strokeStyle = T.axis; ctx.strokeRect(x0 + 0.5, y0 + 0.5, x1 - x0, y1 - y0);
+      this.X = X; this.dirty = false;
+    }
+    draw(cursor, hover) {
+      if (!this.spec) return;
+      const { dpr, w, h } = setupCanvas(this.canvas);
+      if (this.dirty || this.base.width !== this.canvas.width) this.drawBase();
+      const ctx = this.canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(this.base, 0, 0);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const T = theme(this.canvas), N = this.spec.N;
+      const mark = (idx, color, dash) => {
+        const x = Math.round(this.X((idx + 0.5) * 360 / N)) + 0.5;
+        ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash(dash || []);
+        ctx.beginPath(); ctx.moveTo(x, M.t); ctx.lineTo(x, h - M.b); ctx.stroke(); ctx.setLineDash([]);
+      };
+      if (hover !== null && hover !== undefined) mark(hover, T.text, [3, 3]);
+      if (cursor !== null && cursor !== undefined) mark(cursor, T.cursor);
+    }
+  }
+
+  /* ------------------------------------------------------------ harmonic spectrum */
+  class BarPanel {
+    constructor(canvas) { this.canvas = canvas; this.spec = null; this.hover = -1; }
+    set(spec) { this.spec = spec; this.draw(); }
+    hit(px) {
+      const { w } = setupCanvas(this.canvas), n = this.spec.values.length;
+      const x0 = M.l, x1 = w - M.r, f = (px - x0) / (x1 - x0);
+      return Math.max(0, Math.min(n - 1, Math.floor(f * n)));
+    }
+    draw() {
+      if (!this.spec) return;
+      const { dpr, w, h } = setupCanvas(this.canvas);
+      const ctx = this.canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const T = theme(this.canvas), s = this.spec, vals = s.values, n = vals.length;
+      ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+      const x0 = M.l, x1 = w - M.r, y0 = M.t + 4, y1 = h - M.b;
+      let hi = 0; vals.forEach(v => { if (v > hi) hi = v; }); if (hi <= 0) hi = 1; hi *= 1.1;
+      const Y = v => y1 - (y1 - y0) * v / hi, bw = (x1 - x0) / n;
+      ctx.font = '11px ' + getComputedStyle(this.canvas).getPropertyValue('--font-num');
+      const step = niceStep(hi, 4);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.lineWidth = 1;
+      for (let v = 0; v <= hi; v += step) {
+        const y = Math.round(Y(v)) + 0.5;
+        ctx.strokeStyle = v === 0 ? T.axis : T.grid; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+        ctx.fillStyle = T.text; ctx.fillText(fmtTick(v, step), x0 - 7, y);
+      }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      vals.forEach((v, i) => {
+        const x = x0 + i * bw;
+        ctx.fillStyle = i === this.hover ? T.cursor : s.color;
+        const top = Y(v);
+        ctx.fillRect(x + bw * 0.18, top, Math.max(1, bw * 0.64), y1 - top);
+        if (n <= 30 ? true : i % 2 === 0) { ctx.fillStyle = T.text; ctx.fillText(i === 0 ? 'DC' : String(i), x + bw / 2, y1 + 6); }
+      });
+      ctx.strokeStyle = T.axis; ctx.beginPath(); ctx.moveTo(x0, y1 + 0.5); ctx.lineTo(x1, y1 + 0.5); ctx.stroke();
+    }
+  }
+
+  const api = { LinePanel, GanttPanel, BarPanel, theme };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.RL = root.RL || {}; root.RL.plots = api; }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* main.js — state, controls, animation loop and exports. */
+(function () {
+  'use strict';
+  const RL = window.RL;
+  const C = RL.circuits, Sim = RL.sim, Th = RL.theory, Sch = RL.schematic, P = RL.plots;
+  const $ = id => document.getElementById(id);
+
+  const DEFAULTS = { phases: 1, topo: 'TCR', device: 'diode', Vrms: 230, f: 50, alpha: 45, R: 20, Lmh: 45, Linf: false, E: 0, fwd: false, dev: '' };
+  const LIMITS = {
+    Vrms: [10, 1000], f: [10, 400], alpha: [0, 180], R: [0.1, 1000], Lmh: [0, 5000], E: [0, 1000]
+  };
+  const CYCLE_SECONDS = 8;
+
+  let st = Object.assign({}, DEFAULTS);
+  let res = null, sch = null, cfg = null;
+  let cursor = 0, hover = null, playing = false, speed = 1, dragging = false, needsDraw = true;
+  let flowG = null, svgEl = null, lastRouteKey = '', lastLiveIdx = -1;
+  let hidden = {};
+  let panels = [], specVo = null, specIs = null;
+
+  /* ------------------------------------------------------------------ helpers */
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const minus = s => s.replace(/-/g, '−');
+  function fmt(v, d) {
+    if (v === null || v === undefined || !isFinite(v)) return '—';
+    const a = Math.abs(v);
+    if (d === undefined) d = a >= 1000 ? 0 : a >= 100 ? 1 : a >= 10 ? 2 : 3;
+    return minus(v.toFixed(d));
+  }
+  const fmt1 = v => (Math.abs(v) < 0.05 ? '0.0' : fmt(v, 1));
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+  const effDevice = () => st.topo === 'DBR' ? 'diode' : st.topo === 'TCR' ? 'scr' : st.device;
+  function makeCfg() {
+    return {
+      phases: st.phases, topo: st.topo, device: effDevice(), Vrms: st.Vrms, f: st.f, alpha: st.alpha,
+      R: st.R, L: st.Lmh / 1000, Linf: st.Linf, E: st.E, fwd: st.fwd
+    };
+  }
+
+  /* ------------------------------------------------------------------ URL state */
+  function toHash() {
+    return new URLSearchParams({
+      p: st.phases, t: st.topo, d: st.device, V: st.Vrms, f: st.f, a: st.alpha, R: st.R, L: st.Lmh,
+      Li: st.Linf ? 1 : 0, E: st.E, F: st.fwd ? 1 : 0
+    }).toString();
+  }
+  function fromHash() {
+    const h = location.hash.replace(/^#/, '');
+    if (!h) return;
+    const p = new URLSearchParams(h), num = (k, key) => { const v = parseFloat(p.get(k)); if (isFinite(v)) st[key] = clamp(v, LIMITS[key][0], LIMITS[key][1]); };
+    if (p.get('p') === '1' || p.get('p') === '3') st.phases = parseInt(p.get('p'), 10);
+    if (['HW', 'FW', 'DBR', 'TCR'].includes(p.get('t'))) st.topo = p.get('t');
+    if (p.get('d') === 'diode' || p.get('d') === 'scr') st.device = p.get('d');
+    num('V', 'Vrms'); num('f', 'f'); num('a', 'alpha'); num('R', 'R'); num('L', 'Lmh'); num('E', 'E');
+    if (p.has('Li')) st.Linf = p.get('Li') === '1';
+    if (p.has('F')) st.fwd = p.get('F') === '1';
+  }
+  let hashTimer = null;
+  function saveHash() {
+    clearTimeout(hashTimer);
+    hashTimer = setTimeout(() => { try { history.replaceState(null, '', '#' + toHash()); } catch (e) { /* ignore */ } }, 250);
+  }
+
+  /* ------------------------------------------------------------------ presets */
+  const PRESETS = [
+    { id: 'r', label: 'Resistive load', set: { R: 20, Lmh: 0, Linf: false, E: 0, fwd: false } },
+    { id: 'rl', label: 'RL load, current keeps flowing', set: { R: 20, Lmh: 100, Linf: false, E: 0, fwd: false } },
+    { id: 'linf', label: 'Ideal inductor, ripple-free current', set: { R: 20, Lmh: 0, Linf: true, E: 0, fwd: false } },
+    { id: 'rle', label: 'Battery charging (R, L and E)', set: { R: 5, Lmh: 20, Linf: false, E: 100, fwd: false } },
+    { id: 'dcm', label: 'Discontinuous current, α = 90°', ctl: true, set: { alpha: 90, R: 20, Lmh: 20, Linf: false, E: 0, fwd: false } },
+    { id: 'fwd', label: 'Freewheeling diode, RL load, α = 60°', ctl: true, set: { alpha: 60, R: 20, Lmh: 100, Linf: false, E: 0, fwd: true } },
+    { id: 'neg', label: 'Negative average output, α = 120°, L → ∞', ctl: true, set: { alpha: 120, R: 20, Lmh: 0, Linf: true, E: 0, fwd: false } }
+  ];
+  function buildPresets() {
+    const box = $('presets'); box.innerHTML = '';
+    PRESETS.forEach(p => {
+      const b = document.createElement('button'); b.type = 'button'; b.id = 'preset-' + p.id; b.textContent = p.label;
+      b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', () => {
+        Object.assign(st, p.set);
+        if (p.ctl && (st.topo === 'HW' || st.topo === 'FW')) st.device = 'scr';
+        syncControls(); schedule(); toast('Preset: ' + p.label);
+      });
+      box.appendChild(b);
+    });
+  }
+  function presetActive(p) {
+    const keys = Object.keys(p.set);
+    return keys.every(k => (k === 'Linf' || k === 'fwd') ? st[k] === p.set[k] : Math.abs(st[k] - p.set[k]) < 1e-9);
+  }
+
+  /* ------------------------------------------------------------------ controls */
+  const NUMS = [
+    { key: 'Vrms', num: 'in-V', rg: 'rg-V' },
+    { key: 'f', num: 'in-f' },
+    { key: 'alpha', num: 'in-alpha', rg: 'rg-alpha' },
+    { key: 'R', num: 'in-R', rg: 'rg-R' },
+    { key: 'Lmh', num: 'in-L', rg: 'rg-L' },
+    { key: 'E', num: 'in-E', rg: 'rg-E' }
+  ];
+  function setVal(el, v) { const s = String(Math.round(v * 1000) / 1000); if (el.value !== s) el.value = s; }
+  function syncControls() {
+    const def = C.circuitDef(st.phases, st.topo, effDevice());
+    document.querySelectorAll('.cm').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.phase === st.phases && b.dataset.topo === st.topo)));
+    NUMS.forEach(n => {
+      setVal($(n.num), st[n.key]);
+      if (n.rg) { const r = $(n.rg); r.value = clamp(st[n.key], +r.min, +r.max); }
+    });
+    $('f50').setAttribute('aria-pressed', String(st.f === 50)); $('f60').setAttribute('aria-pressed', String(st.f === 60));
+    $('chk-Linf').checked = st.Linf; $('chk-fwd').checked = st.fwd;
+    $('in-L').disabled = st.Linf; $('rg-L').disabled = st.Linf;
+    // device type
+    const eff = effDevice(), fixed = st.topo === 'DBR' || st.topo === 'TCR';
+    $('dev-diode').setAttribute('aria-pressed', String(eff === 'diode')); $('dev-scr').setAttribute('aria-pressed', String(eff === 'scr'));
+    $('dev-diode').disabled = fixed; $('dev-scr').disabled = fixed;
+    $('dev-hint').textContent = fixed ? (st.topo === 'DBR' ? 'The diode bridge is built from diodes.' : 'The thyristor bridge is built from thyristors.') : (eff === 'scr' ? 'Thyristors: the firing angle sets the output.' : 'Diodes conduct as soon as they are forward biased.');
+    // alpha
+    const ctl = def.controlled;
+    $('in-alpha').disabled = !ctl; $('rg-alpha').disabled = !ctl;
+    $('alpha-hint').textContent = ctl ? alphaHint(def) : 'No gate control with diodes, so α = 0. Choose Thyristor to control the output.';
+    $('v-hint').textContent = def.sourceNote + ' · Vm = ' + fmt(Math.SQRT2 * st.Vrms, 1) + ' V';
+    PRESETS.forEach(p => {
+      const b = $('preset-' + p.id);
+      b.disabled = !!p.ctl && st.topo === 'DBR';
+      b.setAttribute('aria-pressed', String(!b.disabled && presetActive(p)));
+    });
+  }
+  function alphaHint(def) {
+    if (def.phases === 1) return 'α is counted from the zero crossing of the supply voltage.';
+    if (def.bridge) return 'α is counted from the natural firing point, 30° after the zero crossing of each phase voltage.';
+    if (def.pulses === 3) return 'α is counted from the natural firing point, 30° after the zero crossing of each phase voltage.';
+    return 'α is counted from the natural firing point, 60° after the zero crossing of each half-winding voltage.';
+  }
+
+  function bindControls() {
+    NUMS.forEach(n => {
+      const num = $(n.num), rg = n.rg ? $(n.rg) : null;
+      num.addEventListener('input', () => {
+        const v = parseFloat(num.value);
+        if (!isFinite(v)) return;
+        st[n.key] = clamp(v, LIMITS[n.key][0], LIMITS[n.key][1]);
+        if (rg) rg.value = clamp(st[n.key], +rg.min, +rg.max);
+        refreshDerived(); schedule();
+      });
+      num.addEventListener('change', () => { setVal(num, st[n.key]); });
+      if (rg) rg.addEventListener('input', () => {
+        st[n.key] = clamp(parseFloat(rg.value), LIMITS[n.key][0], LIMITS[n.key][1]);
+        setVal(num, st[n.key]); refreshDerived(); schedule();
+      });
+    });
+    $('f50').addEventListener('click', () => { st.f = 50; syncControls(); schedule(); });
+    $('f60').addEventListener('click', () => { st.f = 60; syncControls(); schedule(); });
+    $('chk-Linf').addEventListener('change', e => { st.Linf = e.target.checked; syncControls(); schedule(); });
+    $('chk-fwd').addEventListener('change', e => { st.fwd = e.target.checked; syncControls(); schedule(); });
+    $('dev-diode').addEventListener('click', () => { st.device = 'diode'; syncControls(); schedule(); });
+    $('dev-scr').addEventListener('click', () => { st.device = 'scr'; syncControls(); schedule(); });
+    document.querySelectorAll('.cm').forEach(b => b.addEventListener('click', () => {
+      const wasFixed = st.topo === 'DBR' || st.topo === 'TCR';
+      st.phases = +b.dataset.phase; st.topo = b.dataset.topo;
+      if (wasFixed && (st.topo === 'HW' || st.topo === 'FW')) st.device = 'diode';
+      syncControls(); schedule();
+    }));
+    $('btn-defaults').addEventListener('click', () => { st = Object.assign({}, DEFAULTS); syncControls(); schedule(); toast('Parameters reset'); });
+    $('btn-theme').addEventListener('click', () => { setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'); });
+    $('btn-link').addEventListener('click', copyLink);
+    $('btn-csv').addEventListener('click', exportCSV);
+    $('btn-png').addEventListener('click', exportPNG);
+    $('btn-svg').addEventListener('click', exportSVG);
+
+    // transport
+    $('btn-play').addEventListener('click', () => setPlaying(!playing));
+    $('btn-prev').addEventListener('click', () => { setPlaying(false); moveCursor(-5); });
+    $('btn-next').addEventListener('click', () => { setPlaying(false); moveCursor(5); });
+    $('btn-reset-theta').addEventListener('click', () => { setPlaying(false); setCursorIdx(0); });
+    $('rg-theta').addEventListener('input', e => { setPlaying(false); setCursorIdx(parseFloat(e.target.value) / 360 * res.N); });
+    $('rg-speed').addEventListener('input', e => { speed = parseFloat(e.target.value); $('out-speed').textContent = speed + '×'; });
+
+    // tabs
+    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => { x.setAttribute('aria-selected', String(x === t)); $(x.getAttribute('aria-controls')).hidden = x !== t; });
+      if (t.id === 'tab-spectrum') drawSpectra();
+    }));
+
+    document.addEventListener('keydown', e => {
+      const tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'SUMMARY') return;
+      if (e.target && e.target.isContentEditable) return;
+      if (e.code === 'Space' && tag === 'BUTTON') return; // a focused button handles Space itself
+      if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
+      else if (e.code === 'ArrowRight') { setPlaying(false); moveCursor(5); }
+      else if (e.code === 'ArrowLeft') { setPlaying(false); moveCursor(-5); }
+    });
+    window.addEventListener('resize', () => { panels.forEach(p => p.panel.invalidate()); needsDraw = true; drawSpectra(); });
+    if (window.ResizeObserver) new ResizeObserver(() => { panels.forEach(p => p.panel.invalidate()); needsDraw = true; drawSpectra(); }).observe($('wave-grid'));
+  }
+  function refreshDerived() {
+    const def = C.circuitDef(st.phases, st.topo, effDevice());
+    $('v-hint').textContent = def.sourceNote + ' · Vm = ' + fmt(Math.SQRT2 * st.Vrms, 1) + ' V';
+    PRESETS.forEach(p => { const b = $('preset-' + p.id); b.setAttribute('aria-pressed', String(!b.disabled && presetActive(p))); });
+  }
+
+  /* ------------------------------------------------------------------ theme */
+  function setTheme(t) {
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem('rl-theme', t); } catch (e) { /* ignore */ }
+    $('btn-theme').textContent = t === 'dark' ? 'Light theme' : 'Dark theme';
+    if (res) { buildPlots(); buildSpectra(); needsDraw = true; }
+  }
+  function initTheme() {
+    let t = null;
+    try { t = localStorage.getItem('rl-theme'); } catch (e) { /* ignore */ }
+    if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+    $('btn-theme').textContent = t === 'dark' ? 'Light theme' : 'Dark theme';
+  }
+
+  /* ------------------------------------------------------------------ recompute */
+  let pending = false;
+  function schedule() {
+    if (pending) return; pending = true;
+    requestAnimationFrame(() => { pending = false; recompute(); saveHash(); });
+  }
+
+  function recompute() {
+    cfg = makeCfg();
+    res = Sim.simulate(cfg);
+    sch = Sch.buildSchematic(cfg);
+    $('schem').innerHTML = Sch.renderSVG(sch);
+    svgEl = $('schem').querySelector('svg'); flowG = svgEl.querySelector('.flow'); lastRouteKey = '';
+    $('schem-title').textContent = res.def.title;
+    const devIds = res.def.devices.map(d => d.id).concat(cfg.fwd ? ['DF'] : []);
+    if (!devIds.includes(st.dev)) st.dev = devIds[0];
+    buildWaveGrid(devIds);
+    buildPlots(); buildSpectra(); renderResults(); renderTheory(); renderChecks();
+    const w = $('warn');
+    if (res.warnings.length) { w.hidden = false; w.textContent = res.warnings.join(' '); } else w.hidden = true;
+    cursor = clamp(cursor, 0, res.N - 1);
+    lastLiveIdx = -1; needsDraw = true;
+  }
+
+  /* ------------------------------------------------------------------ waveform panels */
+  const PANEL_DEFS = [
+    { id: 'supply', title: 'Supply voltage' },
+    { id: 'vo', title: 'Output voltage vo' },
+    { id: 'io', title: 'Load current io' },
+    { id: 'is', title: 'Supply current' },
+    { id: 'idev', title: 'Device current' },
+    { id: 'vdev', title: 'Device voltage' },
+    { id: 'gantt', title: 'Conduction and gate pulses' }
+  ];
+  function buildWaveGrid(devIds) {
+    const grid = $('wave-grid');
+    // build the DOM once; only the device select changes between circuits
+    if (!grid.dataset.built) {
+      grid.dataset.built = '1';
+      PANEL_DEFS.forEach(d => {
+        const el = document.createElement('div'); el.className = 'pnl'; el.id = 'pnl-' + d.id;
+        el.innerHTML = '<div class="pnl-head"><h3 id="ttl-' + d.id + '">' + d.title + '</h3>' +
+          (d.id === 'idev' ? '<label class="sr" for="sel-dev" style="position:absolute;left:-999px">Device</label><select id="sel-dev"></select>' : '') +
+          '<div class="legend" id="lg-' + d.id + '"></div><div class="pnl-read" id="rd-' + d.id + '"></div></div>' +
+          '<canvas class="cv' + (d.id === 'gantt' ? ' gantt' : '') + '" id="cv-' + d.id + '" aria-label="' + d.title + ' waveform"></canvas>';
+        grid.appendChild(el);
+      });
+      const chips = $('chips');
+      PANEL_DEFS.forEach(d => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.id = 'chip-' + d.id; b.textContent = d.title.replace(' and gate pulses', '');
+        b.setAttribute('aria-pressed', 'true');
+        b.addEventListener('click', () => {
+          hidden[d.id] = !hidden[d.id];
+          b.setAttribute('aria-pressed', String(!hidden[d.id])); $('pnl-' + d.id).hidden = !!hidden[d.id];
+          panels.forEach(p => p.panel.invalidate()); needsDraw = true;
+        });
+        chips.appendChild(b);
+      });
+      $('sel-dev').addEventListener('change', e => { st.dev = e.target.value; buildPlots(); renderResults(); needsDraw = true; });
+      // canvases
+      panels = PANEL_DEFS.map(d => {
+        const cv = $('cv-' + d.id);
+        const panel = d.id === 'gantt' ? new P.GanttPanel(cv) : new P.LinePanel(cv);
+        bindCanvas(cv, panel);
+        return { id: d.id, cv, panel };
+      });
+      specVo = new P.BarPanel($('cv-spec-vo')); specIs = new P.BarPanel($('cv-spec-is'));
+      bindBars(specVo, $('cv-spec-vo'), 'spec-vo-read', 'V'); bindBars(specIs, $('cv-spec-is'), 'spec-is-read', 'A');
+    }
+    const sel = $('sel-dev');
+    sel.innerHTML = devIds.map(id => '<option value="' + id + '">' + id + (id === 'DF' ? ' (freewheeling)' : '') + '</option>').join('');
+    sel.value = st.dev;
+  }
+
+  function bindCanvas(cv, panel) {
+    const idxOf = e => panel.xToIndex(e.clientX - cv.getBoundingClientRect().left);
+    cv.addEventListener('pointermove', e => { if (!res) return; hover = idxOf(e); if (dragging) setCursorIdx(hover); needsDraw = true; });
+    cv.addEventListener('pointerleave', () => { hover = null; needsDraw = true; });
+    cv.addEventListener('pointerdown', e => {
+      if (!res) return; cv.setPointerCapture(e.pointerId); dragging = true; setPlaying(false); setCursorIdx(idxOf(e));
+    });
+    const up = () => { dragging = false; };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  }
+  function bindBars(panel, cv, readId, unitStr) {
+    cv.addEventListener('pointermove', e => {
+      if (!panel.spec) return;
+      const i = panel.hit(e.clientX - cv.getBoundingClientRect().left); panel.hover = i; panel.draw();
+      const v = panel.spec.values[i], base = panel.spec.base;
+      const hz = i * cfg.f;
+      $(readId).textContent = (i === 0 ? 'DC' : 'h' + i + ' · ' + fmt(hz, 0) + ' Hz') + ' = ' + fmt(v, 2) + ' ' + unitStr + (i > 0 && base ? ' (' + fmt(100 * v / base, 1) + ' % of fundamental)' : '');
+    });
+    cv.addEventListener('pointerleave', () => { panel.hover = -1; panel.draw(); $(readId).textContent = 'hover a bar'; });
+  }
+
+  function devSeries() {
+    if (st.dev === 'DF' && cfg.fwd) return { i: res.ifwd, v: res.vfwd };
+    let k = res.def.devices.findIndex(d => d.id === st.dev);
+    if (k < 0) k = 0; // selection is repaired in recompute(); never read a device that the current result does not have
+    return { i: res.devI[k], v: res.devV[k] };
+  }
+  function legendHTML(items) { return items.map(s => '<span><i style="background:' + s.color + '"></i>' + s.name + '</span>').join(''); }
+
+  function buildPlots() {
+    if (!res) return;
+    const T = P.theme(document.body), m = res.metrics, N = res.N;
+    const get = id => panels.find(p => p.id === id).panel;
+    const setP = (id, series, hlines) => {
+      get(id).set({ N, series, hlines: hlines || [] });
+      $('lg-' + id).innerHTML = legendHTML(series.map(s => ({ name: s.name, color: s.color })));
+    };
+    const phaseColor = i => T.vs[i];
+    setP('supply', res.plotSources.map((s, i) => ({ name: s.name, color: phaseColor(i), data: s.data })));
+    setP('vo', [{ name: 'vo', color: T.vo, data: res.vo }], [{ y: m.Vavg, label: 'Vavg ' + fmt(m.Vavg, 1) + ' V', color: T.vo }]);
+    setP('io', [{ name: 'io', color: T.io, data: res.io }], [{ y: m.Iavg, label: 'Iavg ' + fmt(m.Iavg, 2) + ' A', color: T.io }]);
+    setP('is', res.channels.map((c, i) => ({ name: c.label, color: phaseColor(i), data: c.data })));
+    const ds = devSeries(), dm = Sim.mean(ds.i);
+    setP('idev', [{ name: 'i(' + st.dev + ')', color: T.id, data: ds.i }], [{ y: dm, label: 'avg ' + fmt(dm, 2) + ' A', color: T.id }]);
+    setP('vdev', [{ name: 'v(' + st.dev + ') anode − cathode', color: T.vd, data: ds.v }]);
+    $('ttl-vdev').textContent = 'Device voltage, ' + st.dev;
+    // conduction chart
+    const rows = res.def.devices.map((d, i) => ({ label: d.id, color: T.bar, on: res.devOn[i], gate: d.kind === 'scr' ? res.gate[i] : null }));
+    if (cfg.fwd) { const on = new Uint8Array(N); for (let n = 0; n < N; n++) on[n] = res.mode[n] === 2 ? 1 : 0; rows.push({ label: 'DF', color: T.fwd, on, gate: null }); }
+    get('gantt').set({ N, rows });
+    $('lg-gantt').innerHTML = '<span><i style="background:' + T.bar + '"></i>device conducting</span>' + (cfg.fwd ? '<span><i style="background:' + T.fwd + '"></i>freewheeling diode</span>' : '') + (res.def.controlled ? '<span>◤ gate pulse start</span>' : '');
+    $('sel-dev').value = st.dev;
+    panels.forEach(p => p.panel.invalidate());
+  }
+
+  function buildSpectra() {
+    if (!res) return;
+    const T = P.theme(document.body);
+    const sv = Sim.spectrum(res.vo, 24), si = Sim.spectrum(res.channels[0].data, 25);
+    specVo.set({ values: sv, color: T.vo, base: null });
+    specIs.set({ values: si, color: T.vs[0], base: si[1] });
+    $('spec-is-title').textContent = 'Supply current ' + res.channels[0].label;
+  }
+  function drawSpectra() { if (specVo && !$('pane-spectrum').hidden) { specVo.draw(); specIs.draw(); } }
+
+  /* ------------------------------------------------------------------ cursor + animation */
+  function setPlaying(p) {
+    playing = p;
+    const b = $('btn-play'); b.textContent = p ? 'Pause' : 'Play'; b.setAttribute('aria-label', p ? 'Pause animation' : 'Play animation');
+    document.body.classList.toggle('paused', !p);
+  }
+  function setCursorIdx(i) { if (!res) return; cursor = ((i % res.N) + res.N) % res.N; needsDraw = true; }
+  function moveCursor(deg) { setCursorIdx(Math.floor(cursor) + deg / 360 * res.N); }
+
+  let lastTs = 0;
+  function frame(ts) {
+    requestAnimationFrame(frame);
+    const dt = Math.min(0.1, Math.max(0, (ts - lastTs) / 1000)); lastTs = ts;
+    if (playing && res) { cursor = (cursor + dt * speed / CYCLE_SECONDS * res.N) % res.N; needsDraw = true; }
+    if (needsDraw && res) { needsDraw = false; drawAll(); }
+  }
+
+  function drawAll() {
+    const idx = Math.floor(cursor);
+    panels.forEach(p => { if (!hidden[p.id]) p.panel.draw(idx, hover); });
+    const at = hover !== null ? hover : idx;
+    panelReadouts(at);
+    if (idx !== lastLiveIdx) { updateLive(idx); updateSchematic(idx); lastLiveIdx = idx; }
+    const th = (idx + 0.5) * 360 / res.N;
+    const rg = $('rg-theta'); if (document.activeElement !== rg) rg.value = th;
+    $('out-theta').textContent = th.toFixed(1) + '°';
+  }
+
+  function panelReadouts(i) {
+    const v = a => fmt1(a[i]);
+    const set = (id, s) => { $('rd-' + id).textContent = s; };
+    set('supply', res.plotSources.map(s => s.name + ' ' + v(s.data)).join('  ') + ' V');
+    set('vo', 'vo ' + v(res.vo) + ' V');
+    set('io', 'io ' + fmt(res.io[i], 2) + ' A');
+    set('is', res.channels.map(c => c.name + ' ' + fmt(c.data[i], 2)).join('  ') + ' A');
+    const ds = devSeries();
+    set('idev', fmt(ds.i[i], 2) + ' A');
+    set('vdev', v(ds.v) + ' V');
+    const on = [];
+    res.def.devices.forEach((d, k) => { if (res.devOn[k][i]) on.push(d.id); });
+    if (res.mode[i] === 2) on.push('DF');
+    set('gantt', (hover !== null ? 'θ = ' + ((i + 0.5) * 360 / res.N).toFixed(1) + '°  ' : '') + (on.length ? on.join(' + ') : 'none'));
+  }
+
+  function conductingAt(i) {
+    const list = [];
+    res.def.devices.forEach((d, k) => { if (res.devOn[k][i]) list.push(d.id); });
+    if (res.mode[i] === 2) list.push('DF');
+    return list;
+  }
+
+  function updateLive(i) {
+    const th = (i + 0.5) * 360 / res.N, t = th / 360 / cfg.f * 1000;
+    const list = res.io[i] > 1e-9 ? conductingAt(i) : [];
+    const rows = [
+      ['Angle θ', th.toFixed(1) + '° · ' + t.toFixed(2) + ' ms'],
+      ['Supply ' + res.plotSources.map(s => s.name).join(' / '), res.plotSources.map(s => fmt1(s.data[i])).join(' / ') + ' V'],
+      ['Output voltage vo', fmt1(res.vo[i]) + ' V'],
+      ['Load current io', fmt(res.io[i], 2) + ' A'],
+      ['Supply ' + res.channels.map(c => c.name).join(' / '), res.channels.map(c => fmt(c.data[i], 2)).join(' / ') + ' A']
+    ];
+    let html = rows.map(r => '<div class="cell"><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>').join('');
+    html += '<div class="cell"><dt>Conducting</dt><dd>' + (list.length ? list.map(x => '<span class="dv" style="margin-left:0;margin-right:4px">' + x + '</span>').join('') : 'none') + '</dd></div>';
+    $('live').innerHTML = html;
+    const pill = $('mode-pill');
+    if (!list.length) { pill.textContent = 'Idle: no device conducts'; pill.className = 'mode'; }
+    else if (list.includes('DF')) { pill.textContent = 'Freewheeling through DF'; pill.className = 'mode m2'; }
+    else { pill.textContent = 'Conducting: ' + list.join(' + '); pill.className = 'mode m1'; }
+  }
+
+  function updateSchematic(i) {
+    const live = res.io[i] > 1e-9;
+    let kt = null, kb = null, fwd = false;
+    if (live) {
+      if (res.mode[i] === 2) fwd = true;
+      else if (res.bt[i] >= 0) { kt = res.def.devices[res.bt[i]].id; if (res.bb[i] >= 0) kb = res.def.devices[res.bb[i]].id; }
+    }
+    const ch0 = res.channels[0].data[i];
+    const primSign = sch.hasPrimary && kt ? (ch0 > 1e-9 ? 1 : ch0 < -1e-9 ? -1 : 0) : 0;
+    const key = kt + '|' + kb + '|' + fwd + '|' + primSign;
+    if (key === lastRouteKey) return;
+    lastRouteKey = key;
+    svgEl.querySelectorAll('.c.on').forEach(e => e.classList.remove('on'));
+    let html = '';
+    if (kt || fwd) {
+      const route = Sch.routeFor(sch, { kt, kb, fwd, primSign });
+      route.els.forEach(id => { const e = svgEl.querySelector('.c[data-id="' + id + '"]'); if (e) e.classList.add('on'); });
+      route.segs.forEach(s => {
+        html += '<line class="halo" x1="' + s.x1 + '" y1="' + s.y1 + '" x2="' + s.x2 + '" y2="' + s.y2 + '"/>';
+      });
+      route.segs.forEach(s => {
+        html += '<line class="dash" x1="' + s.x1 + '" y1="' + s.y1 + '" x2="' + s.x2 + '" y2="' + s.y2 + '"/>';
+      });
+    }
+    flowG.innerHTML = html;
+  }
+
+  /* ------------------------------------------------------------------ results / theory / checks */
+  function devStats() {
+    if (st.dev === 'DF' && cfg.fwd) {
+      const I = res.ifwd, V = res.vfwd; let n = 0, pk = 0, vmin = 0;
+      for (let k = 0; k < res.N; k++) { if (res.mode[k] === 2) n++; if (I[k] > pk) pk = I[k]; if (V[k] < vmin) vmin = V[k]; }
+      return { avg: Sim.mean(I), rms: Sim.rms(I), peak: pk, piv: -vmin, angle: n * res.dth };
+    }
+    return Sim.deviceStats(res, res.def.devices.findIndex(d => d.id === st.dev));
+  }
+  function group(title, rows) {
+    return '<h3>' + title + '</h3><dl class="kv">' + rows.map(r => '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>').join('') + '</dl>';
+  }
+  function renderResults() {
+    const m = res.metrics, ds = devStats(), th = Th.analyticVavg(cfg);
+    const cond = { continuous: 'continuous', discontinuous: 'discontinuous', ideal: 'ideal, ripple-free' }[m.conduction];
+    let html = group('Output (DC side)', [
+      ['Average voltage Vavg', fmt(m.Vavg) + ' V'], ['RMS voltage Vrms', fmt(m.Vrms) + ' V'],
+      ['Average current Iavg', fmt(m.Iavg) + ' A'], ['RMS current Irms', fmt(m.Irms) + ' A'],
+      ['Voltage ripple factor', fmt(m.ripple, 3)], ['Form factor', fmt(m.formFactor, 3)],
+      ['Load power', fmt(m.Pout, 1) + ' W'], ['Load current', cond]
+    ]);
+    if (m.conduction !== 'ideal') html = html.replace('</dl>', '<dt>Current ripple (peak to peak)</dt><dd>' + fmt(m.Imax - m.Imin) + ' A</dd></dl>');
+    html += group('Supply side, ' + res.channels[0].name, [
+      ['RMS current', fmt(m.IsRms) + ' A'], ['Fundamental (rms)', fmt(m.Is1rms) + ' A'], ['DC component', fmt(m.Is0) + ' A'],
+      ['Current THD', fmt(100 * m.thd, 1) + ' %'], ['Displacement factor', fmt(m.dpf, 3)], ['Power factor', fmt(m.pf, 3)],
+      ['Input power', fmt(m.Pin, 1) + ' W']
+    ]);
+    html += group('Device ' + st.dev, [
+      ['Average current', fmt(ds.avg) + ' A'], ['RMS current', fmt(ds.rms) + ' A'], ['Peak current', fmt(ds.peak) + ' A'],
+      ['Peak reverse voltage', fmt(ds.piv, 1) + ' V'], ['Conduction angle', fmt(ds.angle, 1) + '°']
+    ]);
+    if (th) {
+      const err = Math.abs(m.Vavg - th.value) / Math.max(Math.abs(th.value), 1e-9) * 100;
+      const ok = Math.abs(m.Vavg - th.value) < 0.003 * Math.max(Math.abs(th.value), 1) + 0.05;
+      html += '<h3>Closed-form check</h3><dl class="kv"><dt>Vavg by formula</dt><dd>' + fmt(th.value) + ' V</dd><dt>Difference</dt><dd>' + fmt(err, 2) + ' % <span class="badge ' + (ok ? 'ok' : 'bad') + '">' + (ok ? 'agrees' : 'differs') + '</span></dd></dl>';
+    }
+    $('results').innerHTML = html;
+  }
+
+  function renderTheory() {
+    const def = res.def, notes = Th.notesFor(def), th = Th.analyticVavg(cfg), m = res.metrics;
+    let cmp;
+    if (th) {
+      const err = (m.Vavg - th.value);
+      cmp = '<dl class="kv"><dt>Basis</dt><dd>' + th.basis + '</dd><dt>Vavg from the formula</dt><dd>' + fmt(th.value, 2) + ' V</dd><dt>Vavg from the simulation</dt><dd>' + fmt(m.Vavg, 2) + ' V</dd><dt>Difference</dt><dd>' + fmt(err, 3) + ' V</dd></dl>';
+    } else {
+      cmp = '<p class="hint" style="margin:0">With a finite inductor or a back-emf the average depends on where the current dies out, so there is no simple closed form. The simulation solves the circuit directly. Use the Resistive load or Ideal inductor presets to compare against the formulas.</p>';
+    }
+    $('theory').innerHTML = '<div class="theory theory-grid"><div><h3>How this circuit works</h3><p>' + notes.how + '</p>' +
+      '<h3 style="margin-top:18px">Standard results (ideal, Vm = peak of ' + (def.phases === 3 ? 'the phase' : 'the supply') + ' voltage)</h3><table><tbody>' +
+      notes.rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') + '</tbody></table></div>' +
+      '<div><h3>Model assumptions</h3><ul>' +
+      '<li>Ideal sources with no impedance, so devices commutate instantly (no overlap angle).</li>' +
+      '<li>Ideal devices: no forward drop and no leakage while blocking. In a bridge with no conducting path the blocking voltages assume equal leakage in every device.</li>' +
+      '<li>A thyristor turns on when it is forward biased during its gate pulse (30° wide, 80° for the three-phase bridge so two devices can start together) and turns off when its current reaches zero or it is reverse biased.</li>' +
+      '<li>The load is R, L and E in series. When no device conducts, the load voltage equals E.</li>' +
+      '<li>Each plot is the periodic steady state: the simulation repeats until the inductor current is the same at the start and end of a cycle.</li></ul>' +
+      '<div class="compare"><h3>Formula against simulation</h3>' + cmp + '</div></div></div>';
+  }
+
+  function runChecks() {
+    const out = [], m = res.metrics, def = res.def;
+    // 1 schematic vs model
+    const norm = nets => nets.map(n => n.slice().sort().join('|')).sort();
+    const want = norm(C.netlist(def, cfg, cfg.fwd)), got = norm(Sch.extractNets(sch));
+    const sameNets = JSON.stringify(want) === JSON.stringify(got);
+    const layout = Sch.checkLayout(sch);
+    out.push({ ok: sameNets && !layout.length, title: 'Schematic matches the simulated circuit', detail: sameNets ? 'The wiring read back from the drawing gives the same ' + got.length + ' nets as the model, and no wire crosses a component.' : 'Drawing and model disagree.' });
+    // 2 conduction sequence
+    let bad = 0;
+    for (let n = 0; n < res.N; n++) {
+      let c = 0; for (let d = 0; d < def.devices.length; d++) c += res.devOn[d][n];
+      const want1 = def.bridge ? 2 : 1;
+      if (res.mode[n] === 1 ? c !== want1 : c !== 0) bad++;
+    }
+    out.push({ ok: bad === 0, title: 'Valid conduction pattern at every instant', detail: (def.bridge ? 'Exactly two devices (one per group) conduct, ' : 'Exactly one device conducts, ') + 'or none while idle or freewheeling.' + (bad ? ' Violations: ' + bad : '') });
+    // 3 KCL
+    let worst = 0;
+    for (let n = 0; n < res.N; n++) {
+      let s = 0; def.devices.forEach((d, k) => { if (d.group === 'top') s += res.devI[k][n]; });
+      worst = Math.max(worst, Math.abs(s + res.ifwd[n] - res.io[n]));
+    }
+    out.push({ ok: worst < 1e-6, title: 'Current balance at the output node', detail: 'Device currents plus freewheeling current equal the load current; worst residual ' + worst.toExponential(1) + ' A.' });
+    // 4 power balance
+    const pl = cfg.R * m.Irms * m.Irms + cfg.E * m.Iavg;
+    const perr = m.Pin > 1e-6 ? Math.abs(m.Pin - pl) / m.Pin : Math.abs(m.Pin - pl);
+    out.push({ ok: perr < 0.01 || (m.Pin < 1e-6 && pl < 1e-6), title: 'Power balance', detail: 'Power drawn from the sources ' + fmt(m.Pin, 2) + ' W; R·Irms² + E·Iavg = ' + fmt(pl, 2) + ' W (difference ' + fmt(100 * perr, 2) + ' %).' });
+    // 5 closed form
+    const th = Th.analyticVavg(cfg);
+    if (th) {
+      const e = Math.abs(m.Vavg - th.value);
+      out.push({ ok: e < 0.003 * Math.max(Math.abs(th.value), 1) + 0.05, title: 'Average output voltage against the closed form', detail: 'Formula ' + fmt(th.value, 2) + ' V, simulation ' + fmt(m.Vavg, 2) + ' V (' + th.basis + ').' });
+    } else out.push({ ok: null, title: 'Average output voltage against the closed form', detail: 'No closed form exists for this load; use the Resistive or Ideal inductor presets.' });
+    // 6 periodicity
+    if (m.conduction === 'ideal') out.push({ ok: null, title: 'Periodic steady state', detail: 'The ideal inductor carries a constant current, so no settling is needed.' });
+    else out.push({ ok: res.converged, title: 'Periodic steady state', detail: 'Reached after ' + m.cycles + ' simulated cycles; the inductor current repeats to within ' + m.periodErr.toExponential(1) + ' A.' });
+    return out;
+  }
+  function renderChecks() {
+    const list = runChecks();
+    $('checks').innerHTML = '<div class="checks-list">' + list.map(c =>
+      '<div class="check ' + (c.ok === null ? 'na' : c.ok ? 'ok' : 'bad') + '"><span class="st">' + (c.ok === null ? '–' : c.ok ? '✓' : '✗') + '</span><div><b>' + c.title + '</b><span>' + c.detail + '</span></div></div>').join('') + '</div>';
+  }
+
+  /* ------------------------------------------------------------------ exports */
+  function download(name, blob) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  function exportCSV() {
+    const cols = [], head = ['theta_deg', 'time_ms'];
+    res.plotSources.forEach(s => { head.push(s.name + '_V'); cols.push(s.data); });
+    head.push('vo_V'); cols.push(res.vo); head.push('io_A'); cols.push(res.io);
+    res.channels.forEach(c => { head.push(c.name + '_A'); cols.push(c.data); });
+    res.def.devices.forEach((d, k) => { head.push('i_' + d.id + '_A'); cols.push(res.devI[k]); head.push('v_' + d.id + '_V'); cols.push(res.devV[k]); });
+    if (cfg.fwd) { head.push('i_DF_A'); cols.push(res.ifwd); head.push('v_DF_V'); cols.push(res.vfwd); }
+    const lines = ['# ' + res.def.title + ' | Vs=' + cfg.Vrms + ' V rms, f=' + cfg.f + ' Hz, alpha=' + (res.def.controlled ? cfg.alpha : 0) + ' deg, R=' + cfg.R + ' ohm, L=' + (cfg.Linf ? 'infinite' : (cfg.L * 1000) + ' mH') + ', E=' + cfg.E + ' V, freewheeling diode=' + (cfg.fwd ? 'yes' : 'no'), head.join(',')];
+    for (let n = 0; n < res.N; n += 5) {
+      const th = res.theta[n];
+      lines.push([th.toFixed(3), (th / 360 / cfg.f * 1000).toFixed(5)].concat(cols.map(c => c[n].toFixed(5))).join(','));
+    }
+    download('rectifier-' + res.def.key + '.csv', new Blob([lines.join('\n') + '\n'], { type: 'text/csv' }));
+    toast('CSV saved');
+  }
+  function exportSVG() {
+    const style = '<style>.w,.st{fill:none;stroke:#14233a;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.st.fl{fill:#fff}.dot,.arrow{fill:#14233a}text{font-family:Arial,Helvetica,sans-serif;font-size:13px;fill:#0e1a29}.it{font-style:italic;font-family:Georgia,serif;font-size:15px}.src-lbl{font-style:italic;font-family:Georgia,serif;font-size:14px}.val-lbl{font-family:monospace;font-size:12px;fill:#47586b}.gate{font-size:10px;fill:#47586b}.sign{font-size:15px;font-weight:600}.dev-lbl{font-weight:600}.flow{display:none}</style><rect width="100%" height="100%" fill="#fff"/>';
+    const markup = Sch.renderSVG(sch).replace(/(<svg[^>]*>)/, '$1' + style).replace(/ class="on"/g, '');
+    const clean = markup.replace(/class="c ([^"]*?) on"/g, 'class="c $1"');
+    download('schematic-' + res.def.key + '.svg', new Blob([clean], { type: 'image/svg+xml' }));
+    toast('Schematic saved');
+  }
+  function exportPNG() {
+    drawAll();
+    const vis = panels.filter(p => !hidden[p.id]);
+    if (!vis.length) { toast('Show at least one waveform panel'); return; }
+    const titleH = 34 * (window.devicePixelRatio || 1), dpr = window.devicePixelRatio || 1;
+    const w = Math.max.apply(null, vis.map(p => p.cv.width));
+    const h = vis.reduce((s, p) => s + p.cv.height + titleH, titleH);
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d'), T = P.theme(document.body);
+    ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = T.ink; ctx.font = '600 ' + 16 * dpr + 'px Georgia, serif'; ctx.textBaseline = 'middle';
+    ctx.fillText(res.def.title + '  (Vs ' + cfg.Vrms + ' V, ' + cfg.f + ' Hz, α ' + (res.def.controlled ? cfg.alpha : 0) + '°, R ' + cfg.R + ' Ω, L ' + (cfg.Linf ? '∞' : cfg.L * 1000 + ' mH') + ', E ' + cfg.E + ' V)', 12 * dpr, titleH / 2);
+    let y = titleH;
+    vis.forEach(p => {
+      ctx.font = '600 ' + 14 * dpr + 'px Georgia, serif'; ctx.fillStyle = T.ink;
+      ctx.fillText($('ttl-' + p.id).textContent, 12 * dpr, y + titleH / 2);
+      y += titleH; ctx.drawImage(p.cv, 0, y); y += p.cv.height;
+    });
+    cv.toBlob(b => { download('waveforms-' + res.def.key + '.png', b); toast('PNG saved'); });
+  }
+  function copyLink() {
+    saveHash(); try { history.replaceState(null, '', '#' + toHash()); } catch (e) { /* ignore */ }
+    const url = location.href;
+    const done = () => toast('Link copied');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => fallbackCopy(url, done));
+    else fallbackCopy(url, done);
+  }
+  function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('Copy failed: ' + text); }
+    ta.remove();
+  }
+
+  /* ------------------------------------------------------------------ start */
+  function init() {
+    initTheme();
+    fromHash();
+    buildPresets();
+    bindControls();
+    syncControls();
+    $('out-speed').textContent = speed + '×';
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    recompute();
+    setPlaying(!reduce);
+    requestAnimationFrame(frame);
+    window.RL.app = { get state() { return st; }, get res() { return res; }, get cfg() { return cfg; }, setPlaying };
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+</script>
+</body>
+</html>
